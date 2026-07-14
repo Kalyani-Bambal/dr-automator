@@ -1,17 +1,61 @@
-output "bucket_name" {
+# output "bucket_name" {
 
-  value = aws_s3_bucket.terraform_state.bucket
+#   value = aws_s3_bucket.terraform_state.bucket
+
+# }
+
+# output "bucket_arn" {
+
+#   value = aws_s3_bucket.terraform_state.arn
+
+# }
+
+# output "dynamodb_table" {
+
+#   value = aws_dynamodb_table.terraform_lock.name
+
+# }
+
+#############################################################
+# Primary Region
+#############################################################
+
+output "primary_region" {
+
+  value = var.primary_region
 
 }
 
-output "bucket_arn" {
+#############################################################
+# Disaster Recovery Region
+#############################################################
 
-  value = aws_s3_bucket.terraform_state.arn
+output "dr_region" {
+
+  value = var.dr_region
 
 }
 
-output "dynamodb_table" {
+#############################################################
+# Disaster Recovery Enabled
+#############################################################
 
-  value = aws_dynamodb_table.terraform_lock.name
+output "disaster_recovery_enabled" {
+
+  description = "Disaster Recovery Deployment Status"
+
+  value = var.enable_disaster_recovery
+
+}
+
+#############################################################
+# Disaster Recovery Strategy
+#############################################################
+
+output "dr_strategy" {
+
+  description = "Configured Disaster Recovery Strategy"
+
+  value = var.dr_strategy
 
 }

@@ -8,6 +8,11 @@ terraform {
 
       source  = "hashicorp/aws"
 
+      configuration_aliases = [
+        aws.primary,
+        aws.dr
+      ]
+
       version = "~> 5.0"
 
     }
