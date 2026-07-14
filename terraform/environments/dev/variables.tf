@@ -47,3 +47,111 @@ variable "allowed_ssh_cidr" {
   type = string
 
 }
+
+variable "primary_region" {
+
+  description = "Primary AWS Region for this environment"
+
+  type = string
+
+}
+
+variable "dr_region" {
+
+  description = "Disaster Recovery AWS Region for this environment"
+
+  type = string
+
+}
+
+variable "primary_azs" {
+
+  description = "Availability zones for primary region"
+
+  type = list(string)
+
+}
+
+variable "dr_azs" {
+
+  description = "Availability zones for disaster recovery region"
+
+  type = list(string)
+
+}
+
+variable "enable_disaster_recovery" {
+
+  description = "Enable disaster recovery resources"
+
+  type = bool
+
+  default = false
+
+}
+
+variable "dr_strategy" {
+
+  description = "Disaster recovery strategy"
+
+  type = string
+
+  default = "pilot-light"
+
+}
+
+variable "rto_minutes" {
+
+  description = "Recovery time objective in minutes"
+
+  type = number
+
+  default = 15
+
+}
+
+variable "rpo_minutes" {
+
+  description = "Recovery point objective in minutes"
+
+  type = number
+
+  default = 5
+
+}
+
+#############################################################
+# DR Networking
+#############################################################
+
+variable "vpc_cidr_dr" {
+
+  description = "VPC CIDR for DR region"
+
+  type = string
+
+}
+
+variable "public_subnet_cidrs_dr" {
+
+  description = "Public Subnet CIDRs for DR region"
+
+  type = list(string)
+
+}
+
+variable "private_subnet_cidrs_dr" {
+
+  description = "Private Subnet CIDRs for DR region"
+
+  type = list(string)
+
+}
+
+variable "availability_zones_dr" {
+
+  description = "Availability Zones for DR region"
+
+  type = list(string)
+
+}

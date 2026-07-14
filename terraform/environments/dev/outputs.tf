@@ -16,6 +16,22 @@ output "private_subnets" {
 
 }
 
+#############################################################
+# Primary EKS Cluster
+#############################################################
+
+output "primary_cluster_name" {
+
+  value = module.eks.cluster_name
+
+}
+
+output "primary_cluster_endpoint" {
+
+  value = module.eks.cluster_endpoint
+
+}
+
 #########################################################
 # Security Groups
 #########################################################
@@ -200,5 +216,27 @@ output "ebs_csi_driver_role_arn" {
 output "aws_load_balancer_controller_role_arn" {
 
   value = module.irsa.aws_load_balancer_controller_role_arn
+
+}
+
+#############################################################
+# Disaster Recovery Outputs
+#############################################################
+
+output "dr_region" {
+
+  value = var.dr_region
+
+}
+
+output "dr_enabled" {
+
+  value = var.enable_disaster_recovery
+
+}
+
+output "dr_strategy" {
+
+  value = var.dr_strategy
 
 }

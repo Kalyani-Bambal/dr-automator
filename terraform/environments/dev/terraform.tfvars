@@ -27,3 +27,56 @@ tags = {
   Owner       = "Kalyani"
   ManagedBy   = "Terraform"
 }
+
+#############################################################
+# Multi Region
+#############################################################
+
+primary_region = "ap-south-1"
+
+dr_region = "ap-southeast-1"
+
+vpc_cidr_dr = "10.1.0.0/16"
+
+public_subnet_cidrs_dr = [
+  "10.1.1.0/24",
+  "10.1.2.0/24"
+]
+
+private_subnet_cidrs_dr = [
+  "10.1.11.0/24",
+  "10.1.12.0/24"
+]
+
+availability_zones_dr = [
+  "ap-southeast-1a",
+  "ap-southeast-1b"
+]
+
+primary_azs = [
+
+  "ap-south-1a",
+
+  "ap-south-1b"
+
+]
+
+dr_azs = [
+
+  "ap-southeast-1a",
+
+  "ap-southeast-1b"
+
+]
+
+#############################################################
+# Disaster Recovery
+#############################################################
+
+enable_disaster_recovery = false
+
+dr_strategy = "pilot-light"
+
+rto_minutes = 15
+
+rpo_minutes = 5
