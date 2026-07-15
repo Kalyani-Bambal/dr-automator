@@ -144,7 +144,7 @@ module "eks" {
 
   disk_size = 30
 
-  ebs_csi_role_arn = module.irsa_dr.ebs_csi_driver_role_arn
+  ebs_csi_role_arn = module.irsa.ebs_csi_driver_role_arn
 
   tags = var.tags
 
@@ -174,6 +174,36 @@ module "irsa" {
 
   tags = var.tags
 
+}
+
+module "rds" {
+
+  source = "../../modules/rds"
+
+  providers = {
+    aws.primary = aws.primary
+    aws.dr      = aws.dr
+  }
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  # Network
+  vpc_id             = module.vpc.vpc_id
+  private_subnets    = module.vpc.private_subnets
+  dr_private_subnets = module.vpc_dr.private_subnets
+
+  # Database
+  database_name   = var.database_name
+  master_username = var.master_username
+  master_password = var.master_password
+
+  # Security Groups
+  eks_security_group_id      = module.security_groups.eks_cluster_security_group_id
+  bastion_security_group_id  = module.security_groups.bastion_security_group_id
+  database_security_group_id = module.security_groups.database_security_group_id
+
+  tags = var.tags
 }
 
 #############################################################

@@ -155,3 +155,19 @@ variable "availability_zones_dr" {
   type = list(string)
 
 }
+
+variable "database_name" {
+  description = "Aurora database name"
+  type        = string
+}
+
+variable "master_username" {
+  description = "Aurora master username"
+  type        = string
+}
+
+variable "master_password" {
+  description = "Aurora master password"
+  type        = string
+  sensitive   = true
+}

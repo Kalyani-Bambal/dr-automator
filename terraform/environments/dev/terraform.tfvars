@@ -80,3 +80,11 @@ dr_strategy = "pilot-light"
 rto_minutes = 15
 
 rpo_minutes = 5
+
+#############################################################
+# Aurora Database
+#############################################################
+
+database_name   = "drautomator"
+master_username = "admin"
+master_password = "Laptop@2026"
