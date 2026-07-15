@@ -182,26 +182,73 @@ module "rds" {
 
   providers = {
     aws.primary = aws.primary
-    aws.dr      = aws.dr
   }
+
+  ###########################################################
+  # Project
+  ###########################################################
 
   project_name = var.project_name
   environment  = var.environment
 
+  ###########################################################
   # Network
-  vpc_id             = module.vpc.vpc_id
-  private_subnets    = module.vpc.private_subnets
-  dr_private_subnets = module.vpc_dr.private_subnets
+  ###########################################################
 
+  vpc_id          = module.vpc.vpc_id
+  private_subnets = module.vpc.private_subnets
+
+  ###########################################################
   # Database
+  ###########################################################
+
   database_name   = var.database_name
   master_username = var.master_username
   master_password = var.master_password
 
-  # Security Groups
+  engine         = "mysql"
+  engine_version = "8.0.39"
+
+  instance_class = "db.t3.micro"
+
+  allocated_storage     = 20
+  max_allocated_storage = 100
+  storage_type          = "gp3"
+
+  database_port = 3306
+
+  ###########################################################
+  # Backup
+  ###########################################################
+
+  backup_retention_period     = 7
+  preferred_backup_window     = "03:00-04:00"
+  preferred_maintenance_window = "Sun:04:00-Sun:05:00"
+
+  ###########################################################
+  # Security
+  ###########################################################
+
   eks_security_group_id      = module.security_groups.eks_cluster_security_group_id
   bastion_security_group_id  = module.security_groups.bastion_security_group_id
   database_security_group_id = module.security_groups.database_security_group_id
+
+  ###########################################################
+  # Encryption
+  ###########################################################
+
+  kms_key_arn = module.kms.kms_key_arn
+
+  ###########################################################
+  # Monitoring
+  ###########################################################
+
+  monitoring_interval = 60
+  monitoring_role_arn = module.iam.rds_monitoring_role_arn
+
+  ###########################################################
+  # Tags
+  ###########################################################
 
   tags = var.tags
 }
