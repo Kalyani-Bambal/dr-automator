@@ -1,24 +1,48 @@
 #############################################################
-# Aurora Database Security Group
+# Database Security Group
+#############################################################
+
+locals {
+  database_security_group_id  = var.database_security_group_id != "" ? var.database_security_group_id : aws_security_group.database[0].id
+
+  database_security_group_arn = var.database_security_group_id != "" ? data.aws_security_group.database[0].arn : aws_security_group.database[0].arn
+}
+
+#############################################################
+# Existing Security Group (Optional)
+#############################################################
+
+data "aws_security_group" "database" {
+
+  count = var.database_security_group_id != "" ? 1 : 0
+
+  provider = aws.primary
+
+  id = var.database_security_group_id
+}
+
+#############################################################
+# Create Security Group
 #############################################################
 
 resource "aws_security_group" "database" {
 
-  provider    = aws.primary
+  count = var.database_security_group_id == "" ? 1 : 0
 
-  name        = "${local.name_prefix}-database-sg"
+  provider = aws.primary
 
-  description = "Security Group for Aurora Database"
+  name = local.security_group_name
 
-  vpc_id      = var.vpc_id
+  description = "Security Group for RDS MySQL"
+
+  vpc_id = var.vpc_id
 
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-database-sg"
+      Name = local.security_group_name
     }
   )
-
 }
 
 #############################################################
@@ -27,9 +51,11 @@ resource "aws_security_group" "database" {
 
 resource "aws_vpc_security_group_ingress_rule" "eks_mysql" {
 
+  count = var.database_security_group_id == "" ? 1 : 0
+
   provider = aws.primary
 
-  security_group_id = aws_security_group.database.id
+  security_group_id = aws_security_group.database[0].id
 
   referenced_security_group_id = var.eks_security_group_id
 
@@ -39,8 +65,7 @@ resource "aws_vpc_security_group_ingress_rule" "eks_mysql" {
 
   to_port = 3306
 
-  description = "Allow MySQL from EKS"
-
+  description = "Allow MySQL access from EKS"
 }
 
 #############################################################
@@ -49,9 +74,11 @@ resource "aws_vpc_security_group_ingress_rule" "eks_mysql" {
 
 resource "aws_vpc_security_group_ingress_rule" "bastion_mysql" {
 
+  count = var.database_security_group_id == "" ? 1 : 0
+
   provider = aws.primary
 
-  security_group_id = aws_security_group.database.id
+  security_group_id = aws_security_group.database[0].id
 
   referenced_security_group_id = var.bastion_security_group_id
 
@@ -61,24 +88,24 @@ resource "aws_vpc_security_group_ingress_rule" "bastion_mysql" {
 
   to_port = 3306
 
-  description = "Allow MySQL from Bastion"
-
+  description = "Allow MySQL access from Bastion"
 }
 
 #############################################################
-# Allow All Outbound
+# Outbound Rule
 #############################################################
 
 resource "aws_vpc_security_group_egress_rule" "database_all" {
 
+  count = var.database_security_group_id == "" ? 1 : 0
+
   provider = aws.primary
 
-  security_group_id = aws_security_group.database.id
+  security_group_id = aws_security_group.database[0].id
 
   ip_protocol = "-1"
 
   cidr_ipv4 = "0.0.0.0/0"
 
   description = "Allow all outbound traffic"
-
 }

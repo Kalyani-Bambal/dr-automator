@@ -81,3 +81,15 @@ output "cloudwatch_access_policy_arn" {
   value = aws_iam_policy.cloudwatch_access.arn
 
 }
+
+############################################################
+# RDS Monitoring Role ARN
+############################################################
+
+output "rds_monitoring_role_arn" {
+
+  description = "RDS Enhanced Monitoring Role ARN"
+
+  value = aws_iam_role.rds_monitoring.arn
+
+}

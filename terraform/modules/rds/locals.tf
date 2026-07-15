@@ -14,50 +14,36 @@ locals {
   # Database Naming
   ###########################################################
 
-  cluster_name = "${local.name_prefix}-aurora"
+  db_identifier        = "${local.name_prefix}-mysql"
 
-  global_cluster_name = "${local.name_prefix}-global"
+  subnet_group_name    = "${local.name_prefix}-db-subnet-group"
 
-  subnet_group_name = "${local.name_prefix}-db-subnet-group"
+  parameter_group_name = "${local.name_prefix}-mysql-pg"
 
-  parameter_group_name = "${local.name_prefix}-cluster-pg"
-
-  db_parameter_group_name = "${local.name_prefix}-db-pg"
-
-  security_group_name = "${local.name_prefix}-db-sg"
+  security_group_name  = "${local.name_prefix}-database-sg"
 
   ###########################################################
   # Common Tags
   ###########################################################
 
   common_tags = merge(
-
     var.tags,
-
     {
-
-      Project = var.project_name
-
+      Project     = var.project_name
       Environment = var.environment
-
-      ManagedBy = "Terraform"
-
-      Module = "RDS"
-
+      ManagedBy   = "Terraform"
+      Module      = "RDS"
     }
-
   )
 
 }
 
 #############################################################
-# Database Subnet Groups
+# Database Subnet Group
 #############################################################
 
 locals {
 
   primary_db_subnet_group = "${local.name_prefix}-primary-db-subnet-group"
-
-  dr_db_subnet_group = "${local.name_prefix}-dr-db-subnet-group"
 
 }
