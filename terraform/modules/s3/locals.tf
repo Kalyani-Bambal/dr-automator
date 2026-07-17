@@ -11,57 +11,45 @@ locals {
   name_prefix = "${var.project_name}-${var.environment}"
 
   ###########################################################
-  # Database
+  # Bucket Names
   ###########################################################
 
-  db_identifier = "${local.name_prefix}-mysql"
+  primary_bucket = var.primary_bucket_name
 
-  subnet_group_name = "${local.name_prefix}-db-subnet"
-
-  parameter_group_name = "${local.name_prefix}-mysql-params"
-
-  option_group_name = "${local.name_prefix}-mysql-options"
-
-  ###########################################################
-  # Snapshot
-  ###########################################################
-
-  snapshot_identifier = "${local.name_prefix}-snapshot"
-
-  ###########################################################
-  # Monitoring
-  ###########################################################
-
-  log_exports = [
-    "error",
-    "general",
-    "slowquery"
-  ]
+  dr_bucket = var.dr_bucket_name
 
   ###########################################################
   # Common Tags
   ###########################################################
 
   common_tags = merge(
+
     var.tags,
+
     {
+
       Project     = var.project_name
+
       Environment = var.environment
+
       Terraform   = "true"
-      Module      = "rds"
+
+      Module      = "s3"
+
     }
+
   )
 
 }
 
-snapshot_name = "${local.name_prefix}-snapshot"
-
-restore_identifier = "${local.name_prefix}-restore"
-
 #############################################################
-# DR Restore
+# KMS
 #############################################################
 
-restore_identifier = "${local.name_prefix}-mysql-dr"
+locals {
 
-restore_source_identifier = local.db_identifier
+  kms_key_id = data.aws_kms_key.primary.key_id
+
+  kms_key_arn = data.aws_kms_key.primary.arn
+
+}

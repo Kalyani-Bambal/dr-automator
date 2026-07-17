@@ -1,5 +1,5 @@
 #############################################################
-# Project Information
+# General
 #############################################################
 
 variable "project_name" {
@@ -8,56 +8,109 @@ variable "project_name" {
 }
 
 variable "environment" {
-  description = "Environment"
+  description = "Environment Name"
   type        = string
 }
 
 #############################################################
-# RDS MySQL Configuration
+# Regions
 #############################################################
 
-variable "engine" {
-  description = "Database Engine"
+variable "primary_region" {
+  description = "Primary AWS Region"
   type        = string
-  default     = "mysql"
 }
 
-variable "engine_version" {
-  description = "MySQL Engine Version"
+variable "dr_region" {
+  description = "Disaster Recovery Region"
   type        = string
-  default     = "8.0.39"
 }
 
-variable "database_name" {
+#############################################################
+# Networking
+#############################################################
+
+variable "vpc_id" {
+  description = "Primary VPC ID"
+  type        = string
+}
+
+variable "private_subnets" {
+  description = "Primary Private Subnets"
+  type        = list(string)
+}
+
+variable "dr_vpc_id" {
+  description = "DR VPC ID"
+  type        = string
+}
+
+variable "dr_private_subnets" {
+  description = "DR Private Subnets"
+  type        = list(string)
+}
+
+#############################################################
+# Security Groups
+#############################################################
+
+variable "eks_security_group_id" {
+  description = "EKS Security Group"
+  type        = string
+}
+
+variable "bastion_security_group_id" {
+  description = "Bastion Security Group"
+  type        = string
+}
+
+#############################################################
+# Database Configuration
+#############################################################
+
+variable "db_name" {
   description = "Database Name"
   type        = string
+  default     = "drautomator"
 }
 
-variable "master_username" {
+variable "db_username" {
   description = "Master Username"
   type        = string
 }
 
-variable "master_password" {
+variable "db_password" {
   description = "Master Password"
   type        = string
   sensitive   = true
 }
 
+variable "db_port" {
+  description = "MySQL Port"
+  type        = number
+  default     = 3306
+}
+
+variable "engine_version" {
+  description = "MySQL Engine Version"
+  type        = string
+  default     = "8.0"
+}
+
 variable "instance_class" {
-  description = "RDS Instance Class"
+  description = "RDS Instance Type"
   type        = string
   default     = "db.t3.micro"
 }
 
 variable "allocated_storage" {
-  description = "Initial Storage (GB)"
+  description = "Storage Size"
   type        = number
   default     = 20
 }
 
 variable "max_allocated_storage" {
-  description = "Maximum Storage (GB)"
+  description = "Maximum Storage"
   type        = number
   default     = 100
 }
@@ -69,75 +122,41 @@ variable "storage_type" {
 }
 
 #############################################################
-# Network
-#############################################################
-
-variable "vpc_id" {
-  description = "Primary VPC ID"
-  type        = string
-}
-
-variable "private_subnets" {
-  description = "Private Subnet IDs"
-  type        = list(string)
-}
-
-#############################################################
-# Security
-#############################################################
-
-variable "eks_security_group_id" {
-  description = "EKS Security Group ID"
-  type        = string
-}
-
-variable "bastion_security_group_id" {
-  description = "Bastion Security Group ID"
-  type        = string
-}
-
-variable "database_security_group_id" {
-  description = "Existing Database Security Group"
-  type        = string
-  default     = ""
-}
-
-#############################################################
 # Backup
 #############################################################
 
 variable "backup_retention_period" {
-  description = "Backup Retention Days"
+  description = "Backup Retention"
   type        = number
   default     = 7
 }
 
-variable "preferred_backup_window" {
+variable "backup_window" {
   description = "Backup Window"
   type        = string
   default     = "03:00-04:00"
 }
 
-variable "preferred_maintenance_window" {
+variable "maintenance_window" {
   description = "Maintenance Window"
   type        = string
-  default     = "Sun:04:00-Sun:05:00"
+  default     = "Sun:05:00-Sun:06:00"
 }
 
 #############################################################
-# Database
+# Monitoring
 #############################################################
 
-variable "database_port" {
-  description = "Database Port"
+variable "monitoring_interval" {
+  description = "Enhanced Monitoring"
   type        = number
-  default     = 3306
+  default     = 60
 }
 
-variable "parameter_group_family" {
-  description = "MySQL Parameter Group Family"
-  type        = string
-  default     = "mysql8.0"
+variable "performance_insights_enabled" {
+  description = "Enable Performance Insights"
+  type        = bool
+  default     = true
 }
 
 #############################################################
@@ -150,18 +169,13 @@ variable "kms_key_arn" {
 }
 
 #############################################################
-# Monitoring
+# Snapshot Copy
 #############################################################
 
-variable "monitoring_interval" {
-  description = "Enhanced Monitoring Interval"
-  type        = number
-  default     = 60
-}
-
-variable "monitoring_role_arn" {
-  description = "Enhanced Monitoring IAM Role"
-  type        = string
+variable "copy_tags_to_snapshot" {
+  description = "Copy Tags to Snapshot"
+  type        = bool
+  default     = true
 }
 
 #############################################################
@@ -172,4 +186,47 @@ variable "tags" {
   description = "Common Tags"
   type        = map(string)
   default     = {}
+}
+
+#############################################################
+# Database Security Group
+#############################################################
+
+variable "db_security_group_id" {
+  description = "Primary Database Security Group ID"
+  type        = string
+}
+
+#############################################################
+# Snapshot
+#############################################################
+
+variable "create_manual_snapshot" {
+
+  description = "Create manual snapshot"
+
+  type = bool
+
+  default = true
+}
+
+#############################################################
+# DR Restore
+#############################################################
+
+variable "enable_dr_restore" {
+  description = "Restore database in DR region"
+  type        = bool
+  default     = false
+}
+
+variable "dr_instance_class" {
+  description = "DR RDS Instance Class"
+  type        = string
+  default     = "db.t3.micro"
+}
+
+variable "dr_db_security_group_id" {
+  description = "DR Database Security Group ID"
+  type        = string
 }

@@ -92,6 +92,9 @@ module "iam" {
 
   cluster_name = "dr-automator-dev-eks"
 
+  primary_bucket_arn = module.s3.primary_bucket_arn
+  dr_bucket_arn      = module.s3.dr_bucket_arn
+
   tags = var.tags
 
 }
@@ -176,12 +179,17 @@ module "irsa" {
 
 }
 
+#############################################################
+# RDS Module
+#############################################################
+
 module "rds" {
 
   source = "../../modules/rds"
 
   providers = {
     aws.primary = aws.primary
+    aws.dr      = aws.dr
   }
 
   ###########################################################
@@ -192,46 +200,39 @@ module "rds" {
   environment  = var.environment
 
   ###########################################################
+  # Regions
+  ###########################################################
+
+  primary_region = var.primary_region
+  dr_region      = var.dr_region
+
+  ###########################################################
   # Network
   ###########################################################
 
-  vpc_id          = module.vpc.vpc_id
-  private_subnets = module.vpc.private_subnets
+  vpc_id              = module.vpc.vpc_id
+  private_subnets     = module.vpc.private_subnets
+
+  dr_vpc_id           = module.vpc_dr.vpc_id
+  dr_private_subnets  = module.vpc_dr.private_subnets
+
+  ###########################################################
+  # Existing Security Groups
+  ###########################################################
+
+  db_security_group_id    = module.security_groups.db_security_group_id
+  dr_db_security_group_id = module.security_groups_dr.db_security_group_id
+
+  eks_security_group_id     = module.security_groups.eks_security_group_id
+  bastion_security_group_id = module.security_groups.bastion_security_group_id
 
   ###########################################################
   # Database
   ###########################################################
 
-  database_name   = var.database_name
-  master_username = var.master_username
-  master_password = var.master_password
-
-  engine         = "mysql"
-  engine_version = "8.0.39"
-
-  instance_class = "db.t3.micro"
-
-  allocated_storage     = 20
-  max_allocated_storage = 100
-  storage_type          = "gp3"
-
-  database_port = 3306
-
-  ###########################################################
-  # Backup
-  ###########################################################
-
-  backup_retention_period     = 7
-  preferred_backup_window     = "03:00-04:00"
-  preferred_maintenance_window = "Sun:04:00-Sun:05:00"
-
-  ###########################################################
-  # Security
-  ###########################################################
-
-  eks_security_group_id      = module.security_groups.eks_cluster_security_group_id
-  bastion_security_group_id  = module.security_groups.bastion_security_group_id
-  database_security_group_id = module.security_groups.database_security_group_id
+  db_name     = var.db_name
+  db_username = var.db_username
+  db_password = var.db_password
 
   ###########################################################
   # Encryption
@@ -240,22 +241,11 @@ module "rds" {
   kms_key_arn = module.kms.kms_key_arn
 
   ###########################################################
-  # Monitoring
-  ###########################################################
-
-  monitoring_interval = 60
-  monitoring_role_arn = module.iam.rds_monitoring_role_arn
-
-  ###########################################################
   # Tags
   ###########################################################
 
-  tags = var.tags
+  tags = local.common_tags
 }
-
-#############################################################
-# Disaster Recovery VPC
-#############################################################
 
 module "vpc_dr" {
 
@@ -432,5 +422,74 @@ module "irsa_dr" {
   role_name = "${local.name_prefix}-dr-irsa"
 
   tags = var.tags
+
+}
+
+module "s3" {
+
+  source = "../../modules/s3"
+
+  providers = {
+    aws.primary = aws.primary
+    aws.dr      = aws.dr
+  }
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  primary_region = var.primary_region
+  dr_region      = var.dr_region
+
+  primary_bucket_name = "${var.project_name}-${var.environment}-primary"
+
+  dr_bucket_name = "${var.project_name}-${var.environment}-dr"
+
+  replication_role_arn = module.iam.s3_replication_role_arn
+
+  #############################################################
+# KMS
+#############################################################
+
+primary_kms_key_arn = module.kms.kms_key_arn
+
+dr_kms_key_arn = module.kms_dr.kms_key_arn
+
+  tags = local.common_tags
+
+}
+
+#############################################################
+# Route53
+#############################################################
+
+module "route53" {
+
+  source = "../../modules/route53"
+
+  providers = {
+    aws.primary = aws.primary
+    aws.dr      = aws.dr
+  }
+
+  project_name = var.project_name
+  environment  = var.environment
+
+  primary_region = var.primary_region
+  dr_region      = var.dr_region
+
+  hosted_zone_name  = var.hosted_zone_name
+  create_hosted_zone = var.create_hosted_zone
+
+  primary_ingress_hostname = var.primary_ingress_hostname
+  primary_ingress_zone_id  = var.primary_ingress_zone_id
+
+  dr_ingress_hostname = var.dr_ingress_hostname
+  dr_ingress_zone_id  = var.dr_ingress_zone_id
+
+  health_check_path     = "/health"
+  health_check_port     = 80
+  health_check_protocol = "HTTPS"
+
+  tags = local.common_tags
 
 }

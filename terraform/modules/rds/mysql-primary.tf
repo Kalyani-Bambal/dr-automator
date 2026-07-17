@@ -7,21 +7,23 @@ resource "aws_db_instance" "primary" {
   provider = aws.primary
 
   ###########################################################
-  # Database Configuration
+  # Identification
   ###########################################################
 
-  identifier     = local.db_identifier
+  identifier = local.db_identifier
 
-  engine         = var.engine
+  ###########################################################
+  # Engine
+  ###########################################################
+
+  engine         = "mysql"
   engine_version = var.engine_version
 
+  ###########################################################
+  # Instance
+  ###########################################################
+
   instance_class = var.instance_class
-
-  db_name  = var.database_name
-  username = var.master_username
-  password = var.master_password
-
-  port = var.database_port
 
   ###########################################################
   # Storage
@@ -29,41 +31,54 @@ resource "aws_db_instance" "primary" {
 
   allocated_storage     = var.allocated_storage
   max_allocated_storage = var.max_allocated_storage
+  storage_type          = var.storage_type
 
-  storage_type      = var.storage_type
   storage_encrypted = true
+  kms_key_id        = var.kms_key_arn
 
-  kms_key_id = var.kms_key_arn
+  ###########################################################
+  # Database
+  ###########################################################
+
+  db_name  = var.db_name
+  username = var.db_username
+  password = var.db_password
+  port     = var.db_port
 
   ###########################################################
   # Network
   ###########################################################
 
+  publicly_accessible = false
+
   db_subnet_group_name = aws_db_subnet_group.primary.name
 
   vpc_security_group_ids = [
-    local.database_security_group_id
+    var.db_security_group_id
   ]
-
-  publicly_accessible = false
 
   ###########################################################
   # Parameter Group
   ###########################################################
 
-  parameter_group_name = aws_db_parameter_group.database.name
+  parameter_group_name = aws_db_parameter_group.primary.name
 
   ###########################################################
   # Backup
   ###########################################################
 
   backup_retention_period = var.backup_retention_period
+  backup_window           = var.backup_window
 
-  backup_window = var.preferred_backup_window
+  copy_tags_to_snapshot = var.copy_tags_to_snapshot
 
-  maintenance_window = var.preferred_maintenance_window
+  ###########################################################
+  # Maintenance
+  ###########################################################
 
-  copy_tags_to_snapshot = true
+  maintenance_window = var.maintenance_window
+
+  auto_minor_version_upgrade = true
 
   ###########################################################
   # Monitoring
@@ -71,15 +86,10 @@ resource "aws_db_instance" "primary" {
 
   monitoring_interval = var.monitoring_interval
 
-  monitoring_role_arn = var.monitoring_role_arn
+  performance_insights_enabled = var.performance_insights_enabled
+  performance_insights_kms_key_id = var.kms_key_arn
 
-  enabled_cloudwatch_logs_exports = [
-    "error",
-    "general",
-    "slowquery"
-  ]
-
-  performance_insights_enabled = true
+  enabled_cloudwatch_logs_exports = local.log_exports
 
   ###########################################################
   # Protection
@@ -87,12 +97,17 @@ resource "aws_db_instance" "primary" {
 
   deletion_protection = true
 
-  skip_final_snapshot     = false
+  delete_automated_backups = false
+
+  skip_final_snapshot = false
+
   final_snapshot_identifier = "${local.db_identifier}-final"
 
-  auto_minor_version_upgrade = true
+  ###########################################################
+  # Availability
+  ###########################################################
 
-  apply_immediately = false
+  multi_az = false
 
   ###########################################################
   # Tags
@@ -106,4 +121,12 @@ resource "aws_db_instance" "primary" {
     }
   )
 
+  ###########################################################
+  # Dependencies
+  ###########################################################
+
+  depends_on = [
+    aws_db_subnet_group.primary,
+    aws_db_parameter_group.primary
+  ]
 }

@@ -240,3 +240,27 @@ output "dr_strategy" {
   value = var.dr_strategy
 
 }
+
+#############################################################
+# RDS Outputs
+#############################################################
+
+output "rds_endpoint" {
+  value = module.rds.db_instance_endpoint
+}
+
+output "rds_port" {
+  value = module.rds.db_instance_port
+}
+
+output "rds_identifier" {
+  value = module.rds.db_instance_identifier
+}
+
+output "rds_database" {
+  value = module.rds.db_name
+}
+
+output "rds_restore_identifier" {
+  value = module.rds.restore_identifier
+}

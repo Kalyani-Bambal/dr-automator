@@ -93,3 +93,13 @@ output "rds_monitoring_role_arn" {
   value = aws_iam_role.rds_monitoring.arn
 
 }
+
+#############################################################
+# S3 Replication Role
+#############################################################
+
+output "s3_replication_role_arn" {
+
+  value = aws_iam_role.s3_replication.arn
+
+}

@@ -88,3 +88,9 @@ rpo_minutes = 5
 database_name   = "drautomator"
 master_username = "admin"
 master_password = "Laptop@2026"
+
+primary_ingress_hostname = "k8s-app-primary-xxxxxxxx.ap-south-1.elb.amazonaws.com"
+primary_ingress_zone_id  = "ZP97RAFLXTNZK"
+
+dr_ingress_hostname = "k8s-app-dr-yyyyyyyy.ap-southeast-1.elb.amazonaws.com"
+dr_ingress_zone_id  = "Z1LMS91P8CMLE5"
