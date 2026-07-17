@@ -57,3 +57,15 @@ variable "tags" {
   default = {}
 
 }
+
+#############################################################
+# S3 Replication
+#############################################################
+
+variable "primary_bucket_arn" {
+  type = string
+}
+
+variable "dr_bucket_arn" {
+  type = string
+}

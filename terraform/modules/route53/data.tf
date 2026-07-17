@@ -5,23 +5,35 @@
 data "aws_caller_identity" "current" {}
 
 #############################################################
-# Current Region
+# Primary Region
 #############################################################
 
-data "aws_region" "current" {}
+data "aws_region" "primary" {
 
-#############################################################
-# Availability Zones
-#############################################################
+  provider = aws.primary
 
-data "aws_availability_zones" "available" {
-  state = "available"
 }
 
 #############################################################
-# KMS Key
+# DR Region
 #############################################################
 
-data "aws_kms_key" "rds" {
-  key_id = var.kms_key_arn
+data "aws_region" "dr" {
+
+  provider = aws.dr
+
+}
+
+#############################################################
+# Existing Hosted Zone
+#############################################################
+
+data "aws_route53_zone" "existing" {
+
+  count = var.create_hosted_zone ? 0 : 1
+
+  name         = var.hosted_zone_name
+
+  private_zone = false
+
 }

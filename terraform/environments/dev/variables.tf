@@ -171,3 +171,27 @@ variable "master_password" {
   type        = string
   sensitive   = true
 }
+
+#############################################################
+# Primary ALB
+#############################################################
+
+variable "primary_ingress_hostname" {
+  type = string
+}
+
+variable "primary_ingress_zone_id" {
+  type = string
+}
+
+#############################################################
+# DR ALB
+#############################################################
+
+variable "dr_ingress_hostname" {
+  type = string
+}
+
+variable "dr_ingress_zone_id" {
+  type = string
+}

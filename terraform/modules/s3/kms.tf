@@ -1,27 +1,44 @@
 #############################################################
-# Current AWS Account
+# KMS Key Information
 #############################################################
 
-data "aws_caller_identity" "current" {}
-
 #############################################################
-# Current Region
+# Primary KMS
 #############################################################
 
-data "aws_region" "current" {}
+data "aws_kms_key" "primary" {
 
-#############################################################
-# Availability Zones
-#############################################################
+  provider = aws.primary
 
-data "aws_availability_zones" "available" {
-  state = "available"
+  key_id = var.primary_kms_key_arn
+
 }
 
 #############################################################
-# KMS Key
+# DR KMS
 #############################################################
 
-data "aws_kms_key" "rds" {
-  key_id = var.kms_key_arn
+data "aws_kms_key" "dr" {
+
+  provider = aws.dr
+
+  key_id = var.dr_kms_key_arn
+
 }
+
+#############################################################
+# KMS Alias
+#############################################################
+
+data "aws_kms_alias" "primary" {
+
+  provider = aws.primary
+
+  name = "alias/${split("/", data.aws_kms_key.primary.key_id)[length(split("/", data.aws_kms_key.primary.key_id)) - 1]}"
+
+  depends_on = [
+    data.aws_kms_key.primary
+  ]
+
+}
+
