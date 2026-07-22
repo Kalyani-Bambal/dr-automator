@@ -102,12 +102,13 @@ resource "aws_security_group" "dr_db" {
 #############################################################
 
 resource "aws_vpc_security_group_ingress_rule" "dr_from_eks" {
+  # count = var.dr_eks_security_group_id != "" ? 1 : 0
 
   provider = aws.dr
 
   security_group_id = aws_security_group.dr_db.id
 
-  referenced_security_group_id = var.eks_security_group_id
+  referenced_security_group_id = var.dr_eks_security_group_id
 
   from_port = var.db_port
   to_port   = var.db_port
@@ -122,12 +123,13 @@ resource "aws_vpc_security_group_ingress_rule" "dr_from_eks" {
 #############################################################
 
 resource "aws_vpc_security_group_ingress_rule" "dr_from_bastion" {
+  # count = var.dr_bastion_security_group_id != "" ? 1 : 0
 
   provider = aws.dr
 
   security_group_id = aws_security_group.dr_db.id
 
-  referenced_security_group_id = var.bastion_security_group_id
+  referenced_security_group_id = var.dr_bastion_security_group_id
 
   from_port = var.db_port
   to_port   = var.db_port

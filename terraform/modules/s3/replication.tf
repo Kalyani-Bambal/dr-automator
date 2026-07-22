@@ -6,7 +6,7 @@ resource "aws_s3_bucket_replication_configuration" "primary" {
 
   provider = aws.primary
 
-  count = var.enable_replication ? 1 : 0
+  count = 0
 
   bucket = aws_s3_bucket.primary.id
 
@@ -38,6 +38,12 @@ resource "aws_s3_bucket_replication_configuration" "primary" {
 
       status = "Enabled"
 
+    }
+
+    source_selection_criteria {
+      sse_kms_encrypted_objects {
+        status = "Enabled"
+      }
     }
 
   }

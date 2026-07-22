@@ -183,8 +183,21 @@ variable "primary_ingress_hostname" {
 variable "primary_ingress_zone_id" {
   type = string
 }
-
 #############################################################
+# Route53
+#############################################################
+
+variable "hosted_zone_name" {
+  description = "Public Hosted Zone Name"
+  type        = string
+  default     = ""
+}
+
+variable "create_hosted_zone" {
+  description = "Create Hosted Zone"
+  type        = bool
+  default     = false
+} #############################################################
 # DR ALB
 #############################################################
 

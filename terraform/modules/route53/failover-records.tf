@@ -3,6 +3,7 @@
 #############################################################
 
 resource "aws_route53_record" "primary" {
+  count = var.hosted_zone_name != "" ? 1 : 0
 
   zone_id = local.hosted_zone_id
 
@@ -18,7 +19,7 @@ resource "aws_route53_record" "primary" {
 
   }
 
-  health_check_id = aws_route53_health_check.primary.id
+  health_check_id = aws_route53_health_check.primary[0].id
 
   alias {
 
@@ -36,6 +37,7 @@ resource "aws_route53_record" "primary" {
 #############################################################
 
 resource "aws_route53_record" "secondary" {
+  count = var.hosted_zone_name != "" ? 1 : 0
 
   zone_id = local.hosted_zone_id
 
@@ -51,7 +53,7 @@ resource "aws_route53_record" "secondary" {
 
   }
 
-  health_check_id = aws_route53_health_check.dr.id
+  health_check_id = aws_route53_health_check.dr[0].id
 
   alias {
 

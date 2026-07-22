@@ -3,6 +3,7 @@
 #############################################################
 
 resource "aws_db_snapshot" "manual" {
+  count = var.create_manual_snapshot ? 1 : 0
 
   provider = aws.primary
 
@@ -34,6 +35,7 @@ resource "aws_db_snapshot" "manual" {
 #############################################################
 
 data "aws_db_snapshot" "latest" {
+  count = var.create_manual_snapshot ? 0 : 0
 
   provider = aws.primary
 
@@ -46,14 +48,6 @@ data "aws_db_snapshot" "latest" {
   ]
 }
 
-resource "aws_db_snapshot" "manual" {
-  count = var.create_manual_snapshot ? 1 : 0
-
-  provider = aws.primary
-
-  db_instance_identifier = aws_db_instance.primary.identifier
-
-  db_snapshot_identifier = "${local.snapshot_identifier}-${formatdate("YYYYMMDDhhmmss", timestamp())}"
-
-  tags = local.common_tags
+locals {
+  latest_snapshot_arn = try(data.aws_db_snapshot.latest[0].db_snapshot_arn, null)
 }
