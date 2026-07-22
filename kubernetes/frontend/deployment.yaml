@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: frontend
+  namespace: dr-automator
+  labels:
+    app: frontend
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: frontend
+
+  template:
+    metadata:
+      labels:
+        app: frontend
+
+    spec:
+      containers:
+
+      - name: frontend
+
+        image: 677078406480.dkr.ecr.ap-south-1.amazonaws.com/frontend:v2
+
+        imagePullPolicy: Always
+
+        ports:
+        - containerPort: 3000
+
+        env:
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: dr-automator-config
+              key: NODE_ENV
+
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "256Mi"
+
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+
+          initialDelaySeconds: 40
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3

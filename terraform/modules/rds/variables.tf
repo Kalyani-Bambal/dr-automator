@@ -64,6 +64,18 @@ variable "bastion_security_group_id" {
   type        = string
 }
 
+variable "dr_eks_security_group_id" {
+  description = "DR EKS Security Group"
+  type        = string
+  default     = ""
+}
+
+variable "dr_bastion_security_group_id" {
+  description = "DR Bastion Security Group"
+  type        = string
+  default     = ""
+}
+
 #############################################################
 # Database Configuration
 #############################################################
@@ -128,7 +140,7 @@ variable "storage_type" {
 variable "backup_retention_period" {
   description = "Backup Retention"
   type        = number
-  default     = 7
+  default     = 0
 }
 
 variable "backup_window" {
@@ -150,13 +162,13 @@ variable "maintenance_window" {
 variable "monitoring_interval" {
   description = "Enhanced Monitoring"
   type        = number
-  default     = 60
+  default     = 0
 }
 
 variable "performance_insights_enabled" {
   description = "Enable Performance Insights"
   type        = bool
-  default     = true
+  default     = false
 }
 
 #############################################################

@@ -93,7 +93,7 @@ variable "expiration_days" {
 variable "enable_replication" {
   description = "Enable Cross Region Replication"
   type        = bool
-  default     = true
+  default     = false
 }
 
 #############################################################

@@ -3,6 +3,7 @@
 #############################################################
 
 resource "aws_route53_health_check" "primary" {
+  count = var.hosted_zone_name != "" ? 1 : 0
 
   fqdn = trimsuffix(var.primary_ingress_hostname, ".")
 
@@ -39,6 +40,7 @@ resource "aws_route53_health_check" "primary" {
 #############################################################
 
 resource "aws_route53_health_check" "dr" {
+  count = var.hosted_zone_name != "" ? 1 : 0
 
   fqdn = trimsuffix(var.dr_ingress_hostname, ".")
 

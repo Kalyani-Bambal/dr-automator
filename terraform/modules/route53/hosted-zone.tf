@@ -4,7 +4,7 @@
 
 resource "aws_route53_zone" "this" {
 
-  count = var.create_hosted_zone ? 1 : 0
+  count = var.create_hosted_zone && var.hosted_zone_name != "" ? 1 : 0
 
   name = var.hosted_zone_name
 
@@ -20,6 +20,6 @@ resource "aws_route53_zone" "this" {
 
 locals {
 
-  hosted_zone_id = var.create_hosted_zone ? aws_route53_zone.this[0].zone_id : data.aws_route53_zone.existing[0].zone_id
+  hosted_zone_id = var.create_hosted_zone && var.hosted_zone_name != "" ? aws_route53_zone.this[0].zone_id : (var.hosted_zone_name != "" ? data.aws_route53_zone.existing[0].zone_id : null)
 
 }

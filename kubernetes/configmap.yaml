@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+
+metadata:
+  name: dr-automator-config
+  namespace: dr-automator
+
+data:
+  NODE_ENV: "production"
+  AWS_REGION: "ap-south-1"
+  LOG_LEVEL: "info"
+
+  PORT: "5000"
+
+  FRONTEND_PORT: "3000"
+
+  DB_HOST: "<YOUR_RDS_ENDPOINT>"
+  DB_PORT: "3306"
+  DB_NAME: "drautomator"
+
+  DB_SSL: "false"
+
+  HEALTH_CHECK_PATH: "/health"

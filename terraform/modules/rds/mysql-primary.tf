@@ -84,10 +84,10 @@ resource "aws_db_instance" "primary" {
   # Monitoring
   ###########################################################
 
-  monitoring_interval = var.monitoring_interval
+  monitoring_interval = 0
 
-  performance_insights_enabled = var.performance_insights_enabled
-  performance_insights_kms_key_id = var.kms_key_arn
+  performance_insights_enabled = false
+  performance_insights_kms_key_id = null
 
   enabled_cloudwatch_logs_exports = local.log_exports
 

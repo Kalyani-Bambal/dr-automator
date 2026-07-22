@@ -3,14 +3,19 @@
 #############################################################
 
 data "aws_db_snapshot" "dr_latest" {
+  count = var.enable_dr_restore ? 1 : 0
 
   provider = aws.dr
 
   most_recent = true
 
   db_instance_identifier = local.restore_source_identifier
-
 }
+
+locals {
+  dr_snapshot_arn = try(data.aws_db_snapshot.dr_latest[0].db_snapshot_arn, null)
+}
+
 #############################################################
 # Restore RDS MySQL in DR Region
 #############################################################
@@ -23,7 +28,7 @@ resource "aws_db_instance" "dr_restore" {
   # Create only when DR restore is enabled
   ###########################################################
 
-  count = var.enable_dr_restore ? 1 : 0
+  count = var.enable_dr_restore && local.dr_snapshot_arn != null ? 1 : 0
 
   ###########################################################
   # Restore
@@ -31,7 +36,7 @@ resource "aws_db_instance" "dr_restore" {
 
   identifier = local.restore_identifier
 
-  snapshot_identifier = data.aws_db_snapshot.dr_latest.db_snapshot_arn
+  snapshot_identifier = local.dr_snapshot_arn
 
   ###########################################################
   # Instance

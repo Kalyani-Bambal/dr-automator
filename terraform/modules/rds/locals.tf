@@ -28,6 +28,10 @@ locals {
 
   snapshot_identifier = "${local.name_prefix}-snapshot"
 
+  restore_identifier = "${local.name_prefix}-mysql-dr"
+
+  restore_source_identifier = local.db_identifier
+
   ###########################################################
   # Monitoring
   ###########################################################
@@ -53,15 +57,3 @@ locals {
   )
 
 }
-
-snapshot_name = "${local.name_prefix}-snapshot"
-
-restore_identifier = "${local.name_prefix}-restore"
-
-#############################################################
-# DR Restore
-#############################################################
-
-restore_identifier = "${local.name_prefix}-mysql-dr"
-
-restore_source_identifier = local.db_identifier

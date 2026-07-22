@@ -210,11 +210,11 @@ module "rds" {
   # Network
   ###########################################################
 
-  vpc_id              = module.vpc.vpc_id
-  private_subnets     = module.vpc.private_subnets
+  vpc_id          = module.vpc.vpc_id
+  private_subnets = module.vpc.private_subnets
 
-  dr_vpc_id           = module.vpc_dr.vpc_id
-  dr_private_subnets  = module.vpc_dr.private_subnets
+  dr_vpc_id          = module.vpc_dr.vpc_id
+  dr_private_subnets = module.vpc_dr.private_subnets
 
   ###########################################################
   # Existing Security Groups
@@ -225,14 +225,16 @@ module "rds" {
 
   eks_security_group_id     = module.security_groups.eks_security_group_id
   bastion_security_group_id = module.security_groups.bastion_security_group_id
+  dr_eks_security_group_id  = module.security_groups_dr.eks_security_group_id
+  dr_bastion_security_group_id = module.security_groups_dr.bastion_security_group_id
 
   ###########################################################
   # Database
   ###########################################################
 
-  db_name     = var.db_name
-  db_username = var.db_username
-  db_password = var.db_password
+  db_name     = var.database_name
+  db_username = var.master_username
+  db_password = var.master_password
 
   ###########################################################
   # Encryption
@@ -316,6 +318,9 @@ module "iam_dr" {
   environment = "${var.environment}-dr"
 
   cluster_name = "dr-automator-dr-eks"
+
+  primary_bucket_arn = module.s3.primary_bucket_arn
+  dr_bucket_arn      = module.s3.dr_bucket_arn
 
   tags = var.tags
 
@@ -447,12 +452,12 @@ module "s3" {
   replication_role_arn = module.iam.s3_replication_role_arn
 
   #############################################################
-# KMS
-#############################################################
+  # KMS
+  #############################################################
 
-primary_kms_key_arn = module.kms.kms_key_arn
+  primary_kms_key_arn = module.kms.kms_key_arn
 
-dr_kms_key_arn = module.kms_dr.kms_key_arn
+  dr_kms_key_arn = module.kms_dr.kms_key_arn
 
   tags = local.common_tags
 
@@ -477,7 +482,7 @@ module "route53" {
   primary_region = var.primary_region
   dr_region      = var.dr_region
 
-  hosted_zone_name  = var.hosted_zone_name
+  hosted_zone_name   = var.hosted_zone_name
   create_hosted_zone = var.create_hosted_zone
 
   primary_ingress_hostname = var.primary_ingress_hostname
