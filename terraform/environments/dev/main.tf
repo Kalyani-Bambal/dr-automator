@@ -223,9 +223,9 @@ module "rds" {
   db_security_group_id    = module.security_groups.db_security_group_id
   dr_db_security_group_id = module.security_groups_dr.db_security_group_id
 
-  eks_security_group_id     = module.security_groups.eks_security_group_id
-  bastion_security_group_id = module.security_groups.bastion_security_group_id
-  dr_eks_security_group_id  = module.security_groups_dr.eks_security_group_id
+  eks_security_group_id        = module.security_groups.eks_security_group_id
+  bastion_security_group_id    = module.security_groups.bastion_security_group_id
+  dr_eks_security_group_id     = module.security_groups_dr.eks_security_group_id
   dr_bastion_security_group_id = module.security_groups_dr.bastion_security_group_id
 
   ###########################################################
@@ -241,6 +241,12 @@ module "rds" {
   ###########################################################
 
   kms_key_arn = module.kms.kms_key_arn
+
+  ###########################################################
+  # Protection
+  ###########################################################
+
+  deletion_protection = false
 
   ###########################################################
   # Tags

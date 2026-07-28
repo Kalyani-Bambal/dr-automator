@@ -95,13 +95,11 @@ resource "aws_db_instance" "primary" {
   # Protection
   ###########################################################
 
-  deletion_protection = true
+  deletion_protection = var.deletion_protection
 
   delete_automated_backups = false
 
-  skip_final_snapshot = false
-
-  final_snapshot_identifier = "${local.db_identifier}-final"
+  skip_final_snapshot = true
 
   ###########################################################
   # Availability
