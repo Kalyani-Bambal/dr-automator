@@ -19,14 +19,20 @@ DB_INSTANCE_CLASS = os.environ["DB_INSTANCE_CLASS"]
 DB_SUBNET_GROUP = os.environ["DB_SUBNET_GROUP"]
 SECURITY_GROUP_ID = os.environ["SECURITY_GROUP_ID"]
 KMS_KEY_ID = os.environ.get("KMS_KEY_ID")
+ALB_NAME = os.environ["ALB_NAME"]
 
 source_rds = boto3.client("rds", region_name=PRIMARY_REGION)
 dr_rds = boto3.client("rds", region_name=DR_REGION)
 
+elbv2 = boto3.client(
+    "elbv2",
+    region_name="ap-south-1"
+)
+
 def lambda_handler(event, context):
     logger.info("Disaster Recovery Started")
 
-    import os
+import os
 import json
 import logging
 from datetime import datetime
@@ -66,6 +72,11 @@ MULTI_AZ = Config.MULTI_AZ
 rds = boto3.client(
     "rds",
     region_name=DR_REGION
+)
+
+elb = boto3.client(
+    "elbv2",
+    region_name="ap-south-1"
 )
 
 # ---------------------------------------------------------------------
@@ -419,16 +430,19 @@ def lambda_handler(event, context):
 
         logger.info("Restore request submitted successfully.")
 
+        application_dns = get_application_endpoint()
+
         return response(
             200,
-            "Database restore initiated successfully.",
+            "Disaster Recovery Completed",
             {
-                "snapshot": latest_snapshot["DBSnapshotIdentifier"],
-                "target_database": TARGET_DB_IDENTIFIER,
-                "region": DR_REGION,
-                "status": "creating"
+              "snapshot": latest_snapshot["DBSnapshotIdentifier"],
+              "target_database": TARGET_DB_IDENTIFIER,
+              "region": DR_REGION,
+              "status": "creating",
+              "application_url": f"http://{application_dns}"
             }
-        )
+       ) 
 
     except ValueError as error:
 
@@ -462,3 +476,14 @@ def lambda_handler(event, context):
         logger.info("=" * 60)
         logger.info("Restore DB Lambda Finished")
         logger.info("=" * 60)
+        
+def get_application_endpoint():
+    """
+    Return the Application Load Balancer DNS name.
+    """
+
+    response = elbv2.describe_load_balancers(
+        Names=[ALB_NAME]
+    )
+
+    return response["LoadBalancers"][0]["DNSName"]

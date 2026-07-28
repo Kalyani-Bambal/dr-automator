@@ -1,0 +1,15 @@
+{
+  "Version": "2012-10-17",
+  "Id": "dr-automator-sns-policy",
+  "Statement": [
+    {
+      "Sid": "AllowCloudWatchPublish",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "cloudwatch.amazonaws.com"
+      },
+      "Action": "SNS:Publish",
+      "Resource": "arn:aws:sns:ap-south-1:677078406480:dr-automator-alerts"
+    }
+  ]
+}

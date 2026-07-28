@@ -1,0 +1,18 @@
+{
+  "AlarmName": "dr-automator-rds-storage",
+  "AlarmDescription": "Low RDS free storage",
+  "Namespace": "AWS/RDS",
+  "MetricName": "FreeStorageSpace",
+  "Dimensions": [
+    {
+      "Name": "DBInstanceIdentifier",
+      "Value": "dr-automator-dev-mysql"
+    }
+  ],
+  "Statistic": "Average",
+  "Period": 300,
+  "EvaluationPeriods": 1,
+  "Threshold": 2147483648,
+  "ComparisonOperator": "LessThanThreshold",
+  "TreatMissingData": "notBreaching"
+}

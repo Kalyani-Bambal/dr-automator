@@ -1,0 +1,18 @@
+{
+  "AlarmName": "dr-automator-rds-cpu",
+  "AlarmDescription": "High RDS CPU Utilization",
+  "Namespace": "AWS/RDS",
+  "MetricName": "CPUUtilization",
+  "Dimensions": [
+    {
+      "Name": "DBInstanceIdentifier",
+      "Value": "dr-automator-dev-mysql"
+    }
+  ],
+  "Statistic": "Average",
+  "Period": 300,
+  "EvaluationPeriods": 2,
+  "Threshold": 80,
+  "ComparisonOperator": "GreaterThanThreshold",
+  "TreatMissingData": "notBreaching"
+}

@@ -1,0 +1,6 @@
+{
+  "Name": "dr-automator-restore-db-rule",
+  "Description": "Trigger Restore DB Lambda for Disaster Recovery",
+  "EventBusName": "default",
+  "State": "ENABLED"
+}

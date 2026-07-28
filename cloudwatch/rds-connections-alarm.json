@@ -1,0 +1,18 @@
+{
+  "AlarmName": "dr-automator-rds-connections",
+  "AlarmDescription": "High number of RDS connections",
+  "Namespace": "AWS/RDS",
+  "MetricName": "DatabaseConnections",
+  "Dimensions": [
+    {
+      "Name": "DBInstanceIdentifier",
+      "Value": "dr-automator-dev-mysql"
+    }
+  ],
+  "Statistic": "Average",
+  "Period": 300,
+  "EvaluationPeriods": 2,
+  "Threshold": 80,
+  "ComparisonOperator": "GreaterThanThreshold",
+  "TreatMissingData": "notBreaching"
+}
