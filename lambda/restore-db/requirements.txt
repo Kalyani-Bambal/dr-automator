@@ -1,1 +1,6 @@
-boto3
+# boto3
+# AWS SDK is already included in the Lambda Python runtime.
+# Add additional libraries below if needed.
+
+# Example:
+# requests==2.32.3
