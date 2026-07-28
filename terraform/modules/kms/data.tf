@@ -137,4 +137,55 @@ data "aws_iam_policy_document" "kms_key_policy" {
       ]
     }
   }
+
+  #########################################################
+  # Allow RDS to restore and use encrypted snapshots
+  #########################################################
+
+  statement {
+
+    sid    = "AllowRDSUsage"
+    effect = "Allow"
+
+    principals {
+      type = "Service"
+
+      identifiers = [
+        "rds.amazonaws.com"
+      ]
+    }
+
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+      "kms:CreateGrant",
+      "kms:ListGrants",
+      "kms:RevokeGrant"
+    ]
+
+    resources = [
+      "*"
+    ]
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+
+      values = [
+        "true"
+      ]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "kms:ViaService"
+
+      values = [
+        "rds.*.amazonaws.com"
+      ]
+    }
+  }
 }

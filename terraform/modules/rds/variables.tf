@@ -172,6 +172,16 @@ variable "performance_insights_enabled" {
 }
 
 #############################################################
+# Protection
+#############################################################
+
+variable "deletion_protection" {
+  description = "Enable deletion protection for the primary RDS instance"
+  type        = bool
+  default     = false
+}
+
+#############################################################
 # Encryption
 #############################################################
 

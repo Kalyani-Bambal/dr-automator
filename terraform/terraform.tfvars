@@ -12,8 +12,6 @@ public_access_cidrs = [
 
 project_name = "dr-automator"
 
-environment = "dev"
-
 tags = {
 
   Project = "DR-Automator"
