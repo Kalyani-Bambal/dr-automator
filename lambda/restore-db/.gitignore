@@ -1,8 +1,36 @@
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Build artifacts
 *.zip
+dist/
+build/
+
+# Test outputs
 response.json
-deployed.zip
-restore-db.zip
-package/
-response.json
+
+# Python cache
+.pytest_cache/
+.coverage
+
+# Terraform
+*.tfstate
+*.tfstate.*
