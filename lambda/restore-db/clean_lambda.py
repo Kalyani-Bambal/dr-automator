@@ -124,16 +124,8 @@ def log_restore_details(snapshot):
 def get_application_endpoint():
     if not ALB_NAME:
         return None
-
-    try:
-        response = elbv2.describe_load_balancers(Names=[ALB_NAME])
-        return response["LoadBalancers"][0]["DNSName"]
-    except ClientError as error:
-        logger.warning(
-            "Unable to lookup application load balancer DNS name: %s",
-            error.response.get("Error", {}).get("Message", str(error)),
-        )
-        return None
+    response = elbv2.describe_load_balancers(Names=[ALB_NAME])
+    return response["LoadBalancers"][0]["DNSName"]
 
 
 def lambda_handler(event, context):

@@ -113,7 +113,7 @@ module "eks" {
 
   cluster_name = "dr-automator-dev-eks"
 
-  cluster_version = "1.33"
+  cluster_version = "1.34"
 
   vpc_id = module.vpc.vpc_id
 
@@ -370,7 +370,7 @@ module "eks_dr" {
 
   cluster_name = "${local.name_prefix}-dr-eks"
 
-  cluster_version = "1.33"
+  cluster_version = "1.34"
 
   vpc_id = module.vpc_dr.vpc_id
 

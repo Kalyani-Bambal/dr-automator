@@ -1,0 +1,1 @@
+{"statusCode": 200, "body": "{\"message\": \"Target database already exists.\", \"timestamp\": \"2026-07-30T12:24:55.131482\", \"data\": {\"database\": \"dr-automator-dr-db\", \"status\": \"available\", \"endpoint\": \"dr-automator-dr-db.cfm2go4eeap8.ap-southeast-1.rds.amazonaws.com\"}}"}
