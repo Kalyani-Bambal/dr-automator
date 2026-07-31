@@ -356,18 +356,22 @@ echo
 
 info "Checking DR RDS..."
 
-DR_STATUS=$(aws rds describe-db-instances \
---db-instance-identifier $DR_DB \
---region $DR_REGION \
---query "DBInstances[0].DBInstanceStatus" \
---output text 2>/dev/null)
+DR_EXISTS=$(aws rds describe-db-instances \
+    --region "$DR_REGION" \
+    --query "DBInstances[?DBInstanceIdentifier=='$DR_DB'] | length(@)" \
+    --output text)
 
-if [ $? -eq 0 ]
-then
+if [ "$DR_EXISTS" = "1" ]; then
+    DR_STATUS=$(aws rds describe-db-instances \
+        --db-instance-identifier "$DR_DB" \
+        --region "$DR_REGION" \
+        --query "DBInstances[0].DBInstanceStatus" \
+        --output text)
+
     pass "DR RDS Found"
     echo "Status : $DR_STATUS"
 else
-    warn "DR Database Not Yet Restored"
+    warn "No DR RDS instance (Expected before failover)"
 fi
 
 echo
@@ -400,39 +404,39 @@ aws rds describe-db-snapshots \
 
 echo
 
-
 ##############################################################
-# CHECK DR KMS KEY
+# KMS KEY
 ##############################################################
 
 info "Checking DR KMS Key..."
 
-KMS_KEY=$(aws rds describe-db-instances \
-    --db-instance-identifier "$DR_DB" \
-    --region "$DR_REGION" \
-    --query "DBInstances[0].KmsKeyId" \
-    --output text 2>/dev/null)
+KMS_KEY=$(aws lambda get-function-configuration \
+--function-name dr-automator-restore-db \
+--region $DR_REGION \
+--query "Environment.Variables.KMS_KEY_ID" \
+--output text 2>/dev/null)
 
-if [ -z "$KMS_KEY" ] || [ "$KMS_KEY" = "None" ]; then
+if [ -z "$KMS_KEY" ]
+then
 
-    fail "No KMS Key Associated with DR Database"
+    fail "KMS Key Not Configured"
 
 else
 
-    aws kms describe-key \
-        --key-id "$KMS_KEY" \
-        --region "$DR_REGION" >/dev/null 2>&1
+    STATE=$(aws kms describe-key \
+    --key-id "$KMS_KEY" \
+    --region $DR_REGION \
+    --query "KeyMetadata.KeyState" \
+    --output text)
 
-    if [ $? -eq 0 ]
+    if [ "$STATE" = "Enabled" ]
     then
 
-        pass "DR KMS Key Found"
-
-        echo "Key ARN : $KMS_KEY"
+        pass "KMS Key Enabled"
 
     else
 
-        fail "Unable to Access DR KMS Key"
+        fail "KMS Key State : $STATE"
 
     fi
 
@@ -470,24 +474,23 @@ echo
 info "Checking Security Group..."
 
 SG=$(aws lambda get-function-configuration \
---function-name dr-automator-restore-db \
---region $DR_REGION \
---query "Environment.Variables.SECURITY_GROUP_ID" \
---output text)
+    --function-name dr-automator-restore-db \
+    --region "$DR_REGION" \
+    --query "Environment.Variables.SECURITY_GROUP_ID" \
+    --output text 2>/dev/null)
 
-aws ec2 describe-security-groups \
---group-ids $SG \
---region $DR_REGION >/dev/null 2>&1
-
-if [ $? -eq 0 ]
-then
-
-    pass "Security Group Exists"
-
+if [ -z "$SG" ] || [ "$SG" = "None" ] || [ "$SG" = "null" ]; then
+    fail "SECURITY_GROUP_ID not configured in Lambda"
 else
-
-    fail "Security Group Missing"
-
+    if aws ec2 describe-security-groups \
+        --group-ids "$SG" \
+        --region "$DR_REGION" >/dev/null 2>&1
+    then
+        pass "Security Group Exists"
+        echo "Security Group: $SG"
+    else
+        fail "Security Group Missing ($SG)"
+    fi
 fi
 
 echo
@@ -762,22 +765,28 @@ done
 echo
 
 ##############################################################
-# CHECK LAMBDA FUNCTION URL
+# CHECK FUNCTION URL (OPTIONAL)
 ##############################################################
 
 info "Checking Lambda Function URL..."
 
-FUNCTION_URL=$(aws lambda get-function-url-config \
-    --function-name "$LAMBDA_FUNCTION" \
-    --region "$DR_REGION" \
-    --query "FunctionUrl" \
-    --output text 2>/dev/null || true)
+URL=$(aws lambda get-function-url-config \
+--function-name $LAMBDA_NAME \
+--region $DR_REGION \
+--query FunctionUrl \
+--output text 2>/dev/null)
 
-if [ -z "$FUNCTION_URL" ] || [ "$FUNCTION_URL" = "None" ]; then
-    warn "Lambda Function URL Not Configured (Optional)"
+if [ $? -eq 0 ]
+then
+
+    pass "Function URL Configured"
+
+    echo "$URL"
+
 else
-    pass "Lambda Function URL Found"
-    echo "URL : $FUNCTION_URL"
+
+    warn "Function URL Not Configured (Optional)"
+
 fi
 
 echo
@@ -944,25 +953,21 @@ echo
 
 info "Checking Node Group..."
 
-aws eks describe-nodegroup \
-    --cluster-name $EKS_CLUSTER \
-    --nodegroup-name $NODEGROUP \
-    --region $PRIMARY_REGION >/dev/null 2>&1
+NODEGROUP=$(aws eks list-nodegroups \
+    --cluster-name "$EKS_CLUSTER" \
+    --region "$PRIMARY_REGION" \
+    --query "nodegroups[0]" \
+    --output text)
 
-if [ $? -eq 0 ]
-then
-
-    pass "Node Group Found"
-
-else
-
-    fail "Node Group Not Found"
-
+if [ "$NODEGROUP" = "None" ] || [ -z "$NODEGROUP" ]; then
+    fail "No Node Group Found"
     exit 1
-
 fi
 
-echo
+pass "Node Group Found"
+echo "Node Group : $NODEGROUP"
+
+
 
 ##############################################################
 # GET NODE GROUP DETAILS
