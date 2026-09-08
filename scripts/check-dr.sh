@@ -1730,31 +1730,33 @@ fi
 
 echo
 
-##############################################################
-# DNS RESOLUTION
-##############################################################
+###############################################################
+# DNS RESOLUTION CHECK
+###############################################################
 
-if command -v nslookup >/dev/null 2>&1
-then
+info "Checking DNS Resolution..."
 
-    info "Checking DNS Resolution..."
+if [ -z "$ALB_DNS" ] || [ "$ALB_DNS" = "None" ] || [ "$ALB_DNS" = "null" ]; then
 
-    nslookup $ALB_DNS >/dev/null 2>&1
+    warn "Skipping DNS Resolution - ALB DNS Name Not Available"
 
-    if [ $? -eq 0 ]
-    then
+else
+
+    DNS_RESULT=$(timeout 10 nslookup "$ALB_DNS" 2>&1 || true)
+
+    if echo "$DNS_RESULT" | grep -q "Address"; then
 
         pass "DNS Resolution Successful"
+        echo "$DNS_RESULT"
 
     else
 
         warn "DNS Resolution Failed"
+        echo "$DNS_RESULT"
 
     fi
 
 fi
-
-echo
 
 ##############################################################
 # PART 3C SUMMARY

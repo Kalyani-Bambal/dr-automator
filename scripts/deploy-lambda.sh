@@ -1,3 +1,4 @@
+
 #!/bin/bash
 
 set -e
@@ -13,6 +14,9 @@ FUNCTION_NAME="dr-automator-restore-db"
 
 LAMBDA_DIR="../lambda/restore-db"
 ZIP_FILE="restore-db.zip"
+
+# DR RDS Security Group Name
+SECURITY_GROUP_NAME="dr-automator-dev-mysql-dr-sg"
 
 ##############################################################
 # Colors
@@ -37,6 +41,8 @@ info() {
 }
 
 ##############################################################
+# Start
+##############################################################
 
 echo
 echo "========================================================="
@@ -57,12 +63,30 @@ command -v aws >/dev/null || fail "AWS CLI not installed"
 command -v zip >/dev/null || fail "zip command not installed"
 
 ##############################################################
+# Get DR RDS Security Group Automatically
+##############################################################
+
+info "Getting DR RDS Security Group ID..."
+
+SECURITY_GROUP_ID=$(aws ec2 describe-security-groups \
+    --region "$DR_REGION" \
+    --filters "Name=group-name,Values=$SECURITY_GROUP_NAME" \
+    --query "SecurityGroups[0].GroupId" \
+    --output text)
+
+if [ -z "$SECURITY_GROUP_ID" ] || [ "$SECURITY_GROUP_ID" = "None" ]; then
+    fail "Security Group not found: $SECURITY_GROUP_NAME"
+fi
+
+pass "Security Group found: $SECURITY_GROUP_ID"
+
+##############################################################
 # Package Lambda
 ##############################################################
 
 info "Packaging Lambda..."
 
-cd "$LAMBDA_DIR"
+cd "$LAMBDA_DIR" || fail "Lambda directory not found: $LAMBDA_DIR"
 
 rm -f "$ZIP_FILE"
 
@@ -78,13 +102,13 @@ info "Uploading Lambda..."
 
 aws lambda update-function-code \
     --function-name "$FUNCTION_NAME" \
-    --zip-file fileb://"$ZIP_FILE" \
+    --zip-file "fileb://$ZIP_FILE" \
     --region "$DR_REGION" >/dev/null
 
 pass "Lambda code uploaded"
 
 ##############################################################
-# Wait
+# Wait for Code Deployment
 ##############################################################
 
 info "Waiting for deployment..."
@@ -104,18 +128,20 @@ info "Updating Environment Variables..."
 aws lambda update-function-configuration \
     --function-name "$FUNCTION_NAME" \
     --region "$DR_REGION" \
-    --environment 'Variables={
+    --environment "Variables={
 ALB_NAME=k8s-drautoma-drautoma-c17333964c,
 DB_INSTANCE_CLASS=db.t3.micro,
 DB_SUBNET_GROUP=dr-automator-dev-db-subnet-dr,
-DR_REGION=ap-southeast-1,
+DR_REGION=$DR_REGION,
 MULTI_AZ=false,
 PUBLIC_ACCESS=false,
-SECURITY_GROUP_ID=sg-0a218e55c060df98e,
+SECURITY_GROUP_ID=$SECURITY_GROUP_ID,
 SOURCE_DB_IDENTIFIER=dr-automator-primary-db,
 TARGET_DB_IDENTIFIER=dr-automator-dr-db,
 KMS_KEY_ID=arn:aws:kms:ap-southeast-1:677078406480:key/f87b5c0e-22ba-4e79-bd2a-25b21570d3de
-}' >/dev/null
+}" >/dev/null
+
+info "Waiting for configuration update..."
 
 aws lambda wait function-updated \
     --function-name "$FUNCTION_NAME" \
@@ -132,7 +158,7 @@ info "Publishing Version..."
 VERSION=$(aws lambda publish-version \
     --function-name "$FUNCTION_NAME" \
     --region "$DR_REGION" \
-    --query Version \
+    --query "Version" \
     --output text)
 
 pass "Published Version : $VERSION"
@@ -146,7 +172,7 @@ info "Checking Function URL..."
 URL=$(aws lambda get-function-url-config \
     --function-name "$FUNCTION_NAME" \
     --region "$DR_REGION" \
-    --query FunctionUrl \
+    --query "FunctionUrl" \
     --output text 2>/dev/null || true)
 
 if [ -z "$URL" ] || [ "$URL" = "None" ]; then
@@ -161,9 +187,8 @@ if [ -z "$URL" ] || [ "$URL" = "None" ]; then
     URL=$(aws lambda get-function-url-config \
         --function-name "$FUNCTION_NAME" \
         --region "$DR_REGION" \
-        --query FunctionUrl \
+        --query "FunctionUrl" \
         --output text)
-
 fi
 
 pass "Function URL Ready"
@@ -184,15 +209,37 @@ aws lambda get-function \
 
 pass "Lambda deployment verified"
 
+##############################################################
+# Verify Security Group
+##############################################################
+
+info "Verifying Lambda Security Group..."
+
+CURRENT_SG=$(aws lambda get-function-configuration \
+    --function-name "$FUNCTION_NAME" \
+    --region "$DR_REGION" \
+    --query "Environment.Variables.SECURITY_GROUP_ID" \
+    --output text)
+
+if [ "$CURRENT_SG" = "$SECURITY_GROUP_ID" ]; then
+    pass "Lambda Security Group verified: $CURRENT_SG"
+else
+    fail "Security Group verification failed. Expected: $SECURITY_GROUP_ID, Found: $CURRENT_SG"
+fi
+
+##############################################################
+# Success Summary
+##############################################################
+
 echo
 echo "========================================================="
 echo "          LAMBDA DEPLOYMENT SUCCESSFUL"
 echo "========================================================="
 echo
 
-echo "Function Name : $FUNCTION_NAME"
-echo "Region        : $DR_REGION"
-echo "Version       : $VERSION"
-echo "Function URL  : $URL"
-
+echo "Function Name      : $FUNCTION_NAME"
+echo "Region             : $DR_REGION"
+echo "Security Group     : $SECURITY_GROUP_ID"
+echo "Version            : $VERSION"
+echo "Function URL       : $URL"
 echo
