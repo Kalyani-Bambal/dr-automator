@@ -1545,10 +1545,10 @@ info "Checking Application Load Balancer..."
 
 ALB_ARN=$(aws elbv2 describe-load-balancers \
 --region $PRIMARY_REGION \
---query "LoadBalancers[0].LoadBalancerArn" \
+--query "LoadBalancers[?State.Code!='deleted'] | [0].LoadBalancerArn" \
 --output text 2>/dev/null)
 
-if [ "$ALB_ARN" = "None" ] || [ -z "$ALB_ARN" ]
+if [ "$ALB_ARN" = "None" ] || [ -z "$ALB_ARN" ] || [ "$ALB_ARN" = "null" ]
 then
 
     fail "Application Load Balancer Not Found"
@@ -1567,22 +1567,22 @@ echo
 
 ALB_NAME=$(aws elbv2 describe-load-balancers \
 --region $PRIMARY_REGION \
---query "LoadBalancers[0].LoadBalancerName" \
+--query "LoadBalancers[?State.Code!='deleted'] | [0].LoadBalancerName" \
 --output text)
 
 ALB_STATE=$(aws elbv2 describe-load-balancers \
 --region $PRIMARY_REGION \
---query "LoadBalancers[0].State.Code" \
+--query "LoadBalancers[?State.Code!='deleted'] | [0].State.Code" \
 --output text)
 
 ALB_DNS=$(aws elbv2 describe-load-balancers \
 --region $PRIMARY_REGION \
---query "LoadBalancers[0].DNSName" \
+--query "LoadBalancers[?State.Code!='deleted'] | [0].DNSName" \
 --output text)
 
 ALB_SCHEME=$(aws elbv2 describe-load-balancers \
 --region $PRIMARY_REGION \
---query "LoadBalancers[0].Scheme" \
+--query "LoadBalancers[?State.Code!='deleted'] | [0].Scheme" \
 --output text)
 
 echo "ALB Name   : $ALB_NAME"
@@ -1602,6 +1602,11 @@ if [ "$ALB_STATE" = "active" ]
 then
 
     pass "ALB State : ACTIVE"
+
+elif [ "$ALB_STATE" = "provisioning" ]
+then
+
+    warn "ALB State : PROVISIONING - AWS is still creating it"
 
 else
 
