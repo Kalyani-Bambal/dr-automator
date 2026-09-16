@@ -1,5 +1,0 @@
-{
-    "Region": "ap-south-1",
-    "LoadBalancerName": "k8s-drautoma-drautoma-c17333964c",
-    "HealthCheckPath": "/health"
-}
