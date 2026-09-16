@@ -1,6 +1,0 @@
-[
-  {
-    "Id": "RestoreDBLambda",
-    "Arn": "arn:aws:lambda:ap-southeast-1:677078406480:function:dr-automator-restore-db"
-  }
-]
