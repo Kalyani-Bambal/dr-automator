@@ -1,0 +1,13 @@
+{
+  "name": "dr-automator-root",
+  "private": true,
+  "scripts": {
+    "start-backend": "npm --prefix backend run start",
+    "start-frontend": "npm --prefix frontend run start",
+    "start": "concurrently \"npm --prefix backend run start\" \"npm --prefix frontend run start\"",
+    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
