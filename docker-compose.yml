@@ -1,9 +1,7 @@
 services:
 
   mysql:
-
     image: mysql:8.0
-
     container_name: mysql
 
     environment:
@@ -15,26 +13,33 @@ services:
 
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 
   backend:
-
     build:
       context: ./backend
 
     container_name: backend
 
     env_file:
-      - backend/.env
+      - ./backend/.env
 
     ports:
       - "5000:5000"
 
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
+
 
   frontend:
-
     build:
       context: ./frontend
 
@@ -45,6 +50,7 @@ services:
 
     depends_on:
       - backend
+
 
 volumes:
   mysql_data:
