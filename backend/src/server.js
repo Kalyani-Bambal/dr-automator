@@ -52,12 +52,26 @@ app.get("/metrics", async (req, res) => {
 // Server configuration
 const PORT = process.env.PORT || 5000;
 
+async function waitForDatabase(attempt = 1, maxAttempts = 30) {
+  try {
+    await db.query("SELECT 1");
+    console.log("✅ Connected to MySQL");
+    return true;
+  } catch (err) {
+    if (attempt >= maxAttempts) {
+      throw err;
+    }
+
+    console.warn(`⚠️ MySQL not ready yet (attempt ${attempt}/${maxAttempts}); retrying in 2s...`);
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    return waitForDatabase(attempt + 1, maxAttempts);
+  }
+}
+
 // Start server after DB connection
 async function startServer() {
   try {
-    await db.query("SELECT 1");
-
-    console.log("✅ Connected to MySQL");
+    await waitForDatabase();
 
     app.listen(PORT, () => {
       console.log(`🚀 DR Automator backend running on port ${PORT}`);
@@ -65,7 +79,7 @@ async function startServer() {
       console.log(`❤️ Health check: http://localhost:${PORT}/health`);
     });
   } catch (err) {
-    console.error("❌ Database connection failed");
+    console.error("❌ Database connection failed after retries");
     console.error(err);
 
     process.exit(1);

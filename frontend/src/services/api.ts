@@ -1,4 +1,6 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://backend-service:5000";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (process.env.NODE_ENV === "production" ? "http://backend-service:5000" : "http://localhost:5000");
 
 export async function getHealth() {
   const response = await fetch(`${API_URL}/health`, {
