@@ -2,10 +2,12 @@
   "name": "dr-automator-root",
   "private": true,
   "scripts": {
-    "start-backend": "npm --prefix backend run start",
-    "start-frontend": "npm --prefix frontend run start",
-    "start": "concurrently \"npm --prefix backend run start\" \"npm --prefix frontend run start\"",
-    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\""
+    "backend": "DB_HOST=localhost PORT=5000 npm --prefix backend run start",
+    "frontend": "NEXT_PUBLIC_API_URL=http://localhost:5000 PORT=3000 npm --prefix frontend run start",
+    "dev:backend": "DB_HOST=localhost PORT=5000 npm --prefix backend run dev",
+    "dev:frontend": "NEXT_PUBLIC_API_URL=http://localhost:5000 PORT=3000 npm --prefix frontend run dev",
+    "start": "node scripts/start-local.js",
+    "dev": "node scripts/start-local.js --dev"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

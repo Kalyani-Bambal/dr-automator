@@ -1,0 +1,78 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+
+metadata:
+  name: dr-automator-alerts
+
+  namespace: monitoring
+
+  labels:
+    release: monitoring
+
+spec:
+
+  groups:
+
+    - name: dr-automator.rules
+
+      rules:
+
+        - alert: BackendDown
+
+          expr: up{job="backend-monitor"} == 0
+
+          for: 2m
+
+          labels:
+            severity: critical
+
+          annotations:
+
+            summary: "Backend is down"
+
+            description: "DR Automator backend has been unavailable for more than 2 minutes."
+
+
+        - alert: HighPodCPU
+
+          expr: |
+            sum(
+              rate(
+                container_cpu_usage_seconds_total{
+                  namespace="dr-automator",
+                  container!=""
+                }[5m]
+              )
+            ) > 0.8
+
+          for: 5m
+
+          labels:
+            severity: warning
+
+          annotations:
+
+            summary: "High CPU usage"
+
+            description: "Application CPU usage is above threshold."
+
+
+        - alert: PodRestartingFrequently
+
+          expr: |
+            increase(
+              kube_pod_container_status_restarts_total{
+                namespace="dr-automator"
+              }[15m]
+            ) > 3
+
+          for: 5m
+
+          labels:
+            severity: warning
+
+          annotations:
+
+            summary: "Pod restarting frequently"
+
+            description: "A pod restarted more than 3 times in 15 minutes."
