@@ -224,8 +224,10 @@ module "rds" {
   dr_db_security_group_id = module.security_groups_dr.db_security_group_id
 
   eks_security_group_id        = module.security_groups.eks_security_group_id
+  node_security_group_id       = module.security_groups.node_security_group_id
   bastion_security_group_id    = module.security_groups.bastion_security_group_id
   dr_eks_security_group_id     = module.security_groups_dr.eks_security_group_id
+  dr_node_security_group_id    = module.security_groups_dr.node_security_group_id
   dr_bastion_security_group_id = module.security_groups_dr.bastion_security_group_id
 
   ###########################################################

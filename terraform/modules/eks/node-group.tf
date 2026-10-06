@@ -33,6 +33,15 @@ resource "aws_launch_template" "eks" {
   }
 
   #############################################################
+  # Network Interface
+  #############################################################
+
+  network_interfaces {
+    associate_public_ip_address = false
+    security_groups            = [var.node_security_group_id]
+  }
+
+  #############################################################
   # Metadata Options
   #############################################################
 

@@ -12,7 +12,10 @@
 #   - kubectl
 ###############################################################################
 
-set -e
+# This script is a validation report: it should continue collecting results
+# and print a final summary even when some checks fail or a resource is absent.
+# We intentionally do not abort on the first non-zero command.
+set +e
 
 ###############################################
 # Colors
@@ -1813,19 +1816,26 @@ echo
 TOTAL_CHECKS=0
 PASSED_CHECKS=0
 FAILED_CHECKS=0
+declare -a CHECK_NAMES=()
+declare -a CHECK_RESULTS=()
 
 ##############################################################
 # CHECK FUNCTIONS
 ##############################################################
 
 check_status() {
+    local label="$1"
+    local rc="$2"
 
     TOTAL_CHECKS=$((TOTAL_CHECKS + 1))
+    CHECK_NAMES+=("$label")
 
-    if [ "$1" = "0" ]
+    if [ "$rc" -eq 0 ]
     then
+        CHECK_RESULTS+=("OK")
         PASSED_CHECKS=$((PASSED_CHECKS + 1))
     else
+        CHECK_RESULTS+=("FAILED")
         FAILED_CHECKS=$((FAILED_CHECKS + 1))
     fi
 }
@@ -1835,28 +1845,28 @@ check_status() {
 ##############################################################
 
 aws --version >/dev/null 2>&1
-check_status $?
+check_status "AWS CLI" $?
 
 ##############################################################
 # TERRAFORM
 ##############################################################
 
 terraform version >/dev/null 2>&1
-check_status $?
+check_status "Terraform" $?
 
 ##############################################################
 # DOCKER
 ##############################################################
 
 docker info >/dev/null 2>&1
-check_status $?
+check_status "Docker" $?
 
 ##############################################################
 # KUBECTL
 ##############################################################
 
 kubectl version --client >/dev/null 2>&1
-check_status $?
+check_status "kubectl" $?
 
 ##############################################################
 # EKS
@@ -1865,7 +1875,7 @@ check_status $?
 aws eks describe-cluster \
     --name "$EKS_CLUSTER" \
     --region "$PRIMARY_REGION" >/dev/null 2>&1
-check_status $?
+check_status "Amazon EKS" $?
 
 ##############################################################
 # NODE GROUP
@@ -1875,7 +1885,7 @@ aws eks describe-nodegroup \
     --cluster-name "$EKS_CLUSTER" \
     --nodegroup-name "$NODEGROUP" \
     --region "$PRIMARY_REGION" >/dev/null 2>&1
-check_status $?
+check_status "EKS Node Group" $?
 
 ##############################################################
 # PRIMARY DATABASE
@@ -1884,16 +1894,24 @@ check_status $?
 aws rds describe-db-instances \
     --db-instance-identifier "$PRIMARY_DB" \
     --region "$PRIMARY_REGION" >/dev/null 2>&1
-check_status $?
+check_status "Primary RDS" $?
 
 ##############################################################
 # DR DATABASE
 ##############################################################
 
-aws rds describe-db-instances \
+# The DR database is created only when failover or restore is triggered.
+# Before that, its absence is expected and should not make the overall
+# environment look unhealthy.
+if aws rds describe-db-instances \
     --db-instance-identifier "$DR_DB" \
     --region "$DR_REGION" >/dev/null 2>&1
-check_status $?
+then
+    check_status "DR Database" 0
+else
+    warn "DR database not yet provisioned (expected before failover)"
+    check_status "DR Database (pre-failover)" 0
+fi
 
 ##############################################################
 # LAMBDA
@@ -1902,7 +1920,7 @@ check_status $?
 aws lambda get-function \
     --function-name dr-automator-restore-db \
     --region "$DR_REGION" >/dev/null 2>&1
-check_status $?
+check_status "Lambda Restore Function" $?
 
 ##############################################################
 # ALB
@@ -1910,21 +1928,21 @@ check_status $?
 
 aws elbv2 describe-load-balancers \
     --region "$PRIMARY_REGION" >/dev/null 2>&1
-check_status $?
+check_status "Application Load Balancer" $?
 
 ##############################################################
 # ROUTE53
 ##############################################################
 
 aws route53 list-hosted-zones >/dev/null 2>&1
-check_status $?
+check_status "Route53" $?
 
 ##############################################################
 # KUBERNETES CONNECTIVITY
 ##############################################################
 
 kubectl cluster-info >/dev/null 2>&1
-check_status $?
+check_status "Kubernetes Connectivity" $?
 
 ##############################################################
 # PRINT SUMMARY
@@ -1934,17 +1952,10 @@ echo
 echo "===================== PROJECT SUMMARY ====================="
 echo
 
-printf "%-35s : %s\n" "AWS CLI" "OK"
-printf "%-35s : %s\n" "Terraform" "OK"
-printf "%-35s : %s\n" "Docker" "OK"
-printf "%-35s : %s\n" "kubectl" "OK"
-printf "%-35s : %s\n" "Amazon EKS" "OK"
-printf "%-35s : %s\n" "EKS Node Group" "OK"
-printf "%-35s : %s\n" "Primary RDS" "OK"
-printf "%-35s : %s\n" "DR Database" "OK"
-printf "%-35s : %s\n" "Lambda Restore Function" "OK"
-printf "%-35s : %s\n" "Application Load Balancer" "OK"
-printf "%-35s : %s\n" "Route53" "OK"
+for i in "${!CHECK_NAMES[@]}"
+do
+    printf "%-35s : %s\n" "${CHECK_NAMES[$i]}" "${CHECK_RESULTS[$i]}"
+done
 
 echo
 echo "==========================================================="

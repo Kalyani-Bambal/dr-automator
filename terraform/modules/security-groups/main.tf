@@ -249,6 +249,23 @@ resource "aws_security_group_rule" "node_to_cluster" {
 
 }
 
+# EKS Control Plane -> Worker Nodes (kubelet/webhooks)
+resource "aws_security_group_rule" "cluster_to_node_kubelet" {
+
+  type = "ingress"
+
+  from_port = 1025
+
+  to_port = 65535
+
+  protocol = "tcp"
+
+  security_group_id = aws_security_group.node.id
+
+  source_security_group_id = aws_security_group.eks_cluster.id
+
+}
+
 # Worker Nodes -> Database
 resource "aws_security_group_rule" "node_to_database" {
 

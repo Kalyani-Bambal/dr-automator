@@ -20,7 +20,7 @@ resource "aws_security_group" "primary_db" {
 }
 
 #############################################################
-# Allow MySQL from EKS
+# Allow MySQL from EKS cluster SG
 #############################################################
 
 resource "aws_vpc_security_group_ingress_rule" "primary_from_eks" {
@@ -37,6 +37,26 @@ resource "aws_vpc_security_group_ingress_rule" "primary_from_eks" {
   ip_protocol = "tcp"
 
   description = "Allow MySQL from EKS"
+}
+
+#############################################################
+# Allow MySQL from EKS worker nodes
+#############################################################
+
+resource "aws_vpc_security_group_ingress_rule" "primary_from_node" {
+
+  provider = aws.primary
+
+  security_group_id = aws_security_group.primary_db.id
+
+  referenced_security_group_id = var.node_security_group_id
+
+  from_port = var.db_port
+  to_port   = var.db_port
+
+  ip_protocol = "tcp"
+
+  description = "Allow MySQL from EKS worker nodes"
 }
 
 #############################################################
@@ -116,6 +136,26 @@ resource "aws_vpc_security_group_ingress_rule" "dr_from_eks" {
   ip_protocol = "tcp"
 
   description = "Allow MySQL from DR EKS"
+}
+
+#############################################################
+# Allow MySQL from DR EKS worker nodes
+#############################################################
+
+resource "aws_vpc_security_group_ingress_rule" "dr_from_node" {
+
+  provider = aws.dr
+
+  security_group_id = aws_security_group.dr_db.id
+
+  referenced_security_group_id = var.dr_node_security_group_id
+
+  from_port = var.db_port
+  to_port   = var.db_port
+
+  ip_protocol = "tcp"
+
+  description = "Allow MySQL from DR EKS worker nodes"
 }
 
 #############################################################
