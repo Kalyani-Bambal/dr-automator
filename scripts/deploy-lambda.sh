@@ -1,22 +1,23 @@
 
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
 ##############################################################
 # DR AUTOMATOR - LAMBDA DEPLOYMENT SCRIPT
 ##############################################################
 
-PRIMARY_REGION="ap-south-1"
-DR_REGION="ap-southeast-1"
-
-FUNCTION_NAME="dr-automator-restore-db"
-
-LAMBDA_DIR="../lambda/restore-db"
-ZIP_FILE="restore-db.zip"
-
-# DR RDS Security Group Name
-SECURITY_GROUP_NAME="dr-automator-dev-mysql-dr-sg"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+PRIMARY_REGION="${PRIMARY_REGION:-ap-south-1}"
+DR_REGION="${DR_REGION:-ap-southeast-1}"
+FUNCTION_NAME="${FUNCTION_NAME:-dr-automator-restore-db}"
+ROLE_NAME="${ROLE_NAME:-dr-automator-restore-db-role}"
+LAMBDA_DIR="${REPO_ROOT}/lambda/restore-db"
+ZIP_FILE="${SCRIPT_DIR}/restore-db.zip"
+SECURITY_GROUP_NAME="${SECURITY_GROUP_NAME:-dr-automator-dev-mysql-dr-sg}"
+AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+ROLE_ARN="${ROLE_ARN:-arn:aws:iam::${AWS_ACCOUNT_ID}:role/${ROLE_NAME}}"
 
 ##############################################################
 # Colors
@@ -38,6 +39,10 @@ fail() {
 
 info() {
     echo -e "${YELLOW}[INFO]${NC} $1"
+}
+
+warn() {
+    echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
 ##############################################################
@@ -92,18 +97,114 @@ rm -f "$ZIP_FILE"
 
 zip -r "$ZIP_FILE" . >/dev/null
 
+cd "$SCRIPT_DIR" || fail "Could not return to scripts directory"
+
 pass "Lambda package created"
+
+##############################################################
+# Ensure execution role exists
+##############################################################
+
+ensure_lambda_role() {
+    if aws iam get-role --role-name "$ROLE_NAME" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    info "Creating Lambda execution role: $ROLE_NAME"
+
+    aws iam create-role \
+        --role-name "$ROLE_NAME" \
+        --assume-role-policy-document '{
+            "Version": "2012-10-17",
+            "Statement": [{
+                "Effect": "Allow",
+                "Principal": {"Service": "lambda.amazonaws.com"},
+                "Action": "sts:AssumeRole"
+            }]
+        }' >/dev/null
+
+    aws iam put-role-policy \
+        --role-name "$ROLE_NAME" \
+        --policy-name "dr-automator-restore-db-policy" \
+        --policy-document '{
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "logs:CreateLogGroup",
+                        "logs:CreateLogStream",
+                        "logs:PutLogEvents"
+                    ],
+                    "Resource": "*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "rds:DescribeDBInstances",
+                        "rds:DescribeDBSnapshots",
+                        "rds:RestoreDBInstanceFromDBSnapshot"
+                    ],
+                    "Resource": "*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "elasticloadbalancing:DescribeLoadBalancers"
+                    ],
+                    "Resource": "*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "kms:DescribeKey",
+                        "kms:Decrypt",
+                        "kms:Encrypt",
+                        "kms:GenerateDataKey"
+                    ],
+                    "Resource": "*"
+                },
+                {
+                    "Effect": "Allow",
+                    "Action": [
+                        "ec2:DescribeSecurityGroups",
+                        "ec2:DescribeSubnets",
+                        "ec2:DescribeVpcs"
+                    ],
+                    "Resource": "*"
+                }
+            ]
+        }' >/dev/null
+
+    pass "Lambda role ready: $ROLE_ARN"
+}
+
+ensure_lambda_role
 
 ##############################################################
 # Deploy Lambda
 ##############################################################
 
-info "Uploading Lambda..."
+info "Checking if Lambda function exists..."
 
-aws lambda update-function-code \
-    --function-name "$FUNCTION_NAME" \
-    --zip-file "fileb://$ZIP_FILE" \
-    --region "$DR_REGION" >/dev/null
+if aws lambda get-function --function-name "$FUNCTION_NAME" --region "$DR_REGION" >/dev/null 2>&1; then
+    info "Updating existing Lambda code..."
+    aws lambda update-function-code \
+        --function-name "$FUNCTION_NAME" \
+        --zip-file "fileb://$ZIP_FILE" \
+        --region "$DR_REGION" >/dev/null
+else
+    info "Creating Lambda function: $FUNCTION_NAME"
+    aws lambda create-function \
+        --function-name "$FUNCTION_NAME" \
+        --runtime python3.11 \
+        --handler lambda_function.lambda_handler \
+        --zip-file "fileb://$ZIP_FILE" \
+        --role "$ROLE_ARN" \
+        --timeout 300 \
+        --memory-size 512 \
+        --region "$DR_REGION" >/dev/null
+fi
 
 pass "Lambda code uploaded"
 
@@ -113,7 +214,7 @@ pass "Lambda code uploaded"
 
 info "Waiting for deployment..."
 
-aws lambda wait function-updated \
+aws lambda wait function-active \
     --function-name "$FUNCTION_NAME" \
     --region "$DR_REGION"
 
@@ -122,6 +223,13 @@ pass "Deployment completed"
 ##############################################################
 # Update Environment Variables
 ##############################################################
+
+KMS_KEY_ID="${KMS_KEY_ID:-$(aws kms describe-key --region "$DR_REGION" --key-id alias/dr-automator-dev-dr-kms --query 'KeyMetadata.Arn' --output text 2>/dev/null || aws kms describe-key --region "$DR_REGION" --key-id alias/dr-automator-dev-kms --query 'KeyMetadata.Arn' --output text 2>/dev/null || true)}"
+
+if [ -z "$KMS_KEY_ID" ]; then
+    warn "KMS key alias not found; set KMS_KEY_ID manually with environment variable."
+    KMS_KEY_ID="arn:aws:kms:${DR_REGION}:${AWS_ACCOUNT_ID}:alias/dr-automator-dev-dr-kms"
+fi
 
 info "Updating Environment Variables..."
 
@@ -138,12 +246,12 @@ PUBLIC_ACCESS=false,
 SECURITY_GROUP_ID=$SECURITY_GROUP_ID,
 SOURCE_DB_IDENTIFIER=dr-automator-primary-db,
 TARGET_DB_IDENTIFIER=dr-automator-dr-db,
-KMS_KEY_ID=arn:aws:kms:ap-southeast-1:677078406480:key/f87b5c0e-22ba-4e79-bd2a-25b21570d3de
+KMS_KEY_ID=$KMS_KEY_ID
 }" >/dev/null
 
 info "Waiting for configuration update..."
 
-aws lambda wait function-updated \
+aws lambda wait function-active \
     --function-name "$FUNCTION_NAME" \
     --region "$DR_REGION"
 

@@ -24,7 +24,7 @@ spec:
 
       - name: frontend
 
-        image: 677078406480.dkr.ecr.ap-south-1.amazonaws.com/frontend:v2
+        image: 926658607256.dkr.ecr.ap-south-1.amazonaws.com/frontend:v2
 
         imagePullPolicy: Always
 
@@ -37,6 +37,8 @@ spec:
             configMapKeyRef:
               name: dr-automator-config
               key: NODE_ENV
+        - name: PORT
+          value: "3000"
 
         resources:
           requests:

@@ -59,6 +59,11 @@ variable "eks_security_group_id" {
   type        = string
 }
 
+variable "node_security_group_id" {
+  description = "EKS Worker Node Security Group"
+  type        = string
+}
+
 variable "bastion_security_group_id" {
   description = "Bastion Security Group"
   type        = string
@@ -66,6 +71,12 @@ variable "bastion_security_group_id" {
 
 variable "dr_eks_security_group_id" {
   description = "DR EKS Security Group"
+  type        = string
+  default     = ""
+}
+
+variable "dr_node_security_group_id" {
+  description = "DR EKS Worker Node Security Group"
   type        = string
   default     = ""
 }

@@ -6,11 +6,12 @@ set -euo pipefail
 # DR AUTOMATOR - INVOKE DR LAMBDA
 ##############################################################
 
-DR_REGION="ap-southeast-1"
-FUNCTION_NAME="dr-automator-restore-db"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DR_REGION="${DR_REGION:-ap-southeast-1}"
+FUNCTION_NAME="${FUNCTION_NAME:-dr-automator-restore-db}"
 
-PAYLOAD_FILE="event.json"
-OUTPUT_FILE="response.json"
+PAYLOAD_FILE="${SCRIPT_DIR}/event.json"
+OUTPUT_FILE="${SCRIPT_DIR}/response.json"
 
 GREEN="\033[0;32m"
 RED="\033[0;31m"
@@ -48,9 +49,13 @@ command -v aws >/dev/null || fail "AWS CLI is not installed"
 
 info "Checking Lambda Function..."
 
-aws lambda get-function \
+if ! aws lambda get-function \
     --function-name "$FUNCTION_NAME" \
-    --region "$DR_REGION" >/dev/null
+    --region "$DR_REGION" >/dev/null 2>&1; then
+    echo "Lambda function '$FUNCTION_NAME' does not exist in $DR_REGION."
+    echo "Run ./deploy-lambda.sh first to create it."
+    exit 1
+fi
 
 pass "Lambda Function Found"
 
