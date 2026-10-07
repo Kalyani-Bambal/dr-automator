@@ -18,6 +18,7 @@ TARGET_DB_IDENTIFIER = Config.TARGET_DB_IDENTIFIER
 DB_INSTANCE_CLASS = Config.DB_INSTANCE_CLASS
 DB_SUBNET_GROUP = Config.DB_SUBNET_GROUP
 SECURITY_GROUP_ID = Config.SECURITY_GROUP_ID
+KMS_KEY_ID = Config.KMS_KEY_ID
 DB_PARAMETER_GROUP = Config.DB_PARAMETER_GROUP
 PUBLIC_ACCESS = Config.PUBLIC_ACCESS
 MULTI_AZ = Config.MULTI_AZ
@@ -42,11 +43,26 @@ def get_latest_snapshot():
         s for s in response["DBSnapshots"]
         if s["Status"] == "available" and s["DBSnapshotIdentifier"].startswith("dr-automator")
     ]
+    if KMS_KEY_ID:
+        snapshots = [
+            s for s in snapshots
+            if s.get("KmsKeyId") == KMS_KEY_ID
+            or s.get("KmsKeyId") == KMS_KEY_ID.replace("arn:aws:kms:", "arn:aws:kms:")
+        ]
+        if not snapshots:
+            logger.warning(
+                "No DR snapshots found with the active KMS key %s; falling back to the newest available snapshot for compatibility.",
+                KMS_KEY_ID,
+            )
+            snapshots = [
+                s for s in response["DBSnapshots"]
+                if s["Status"] == "available" and s["DBSnapshotIdentifier"].startswith("dr-automator")
+            ]
     if not snapshots:
         raise Exception("No DR snapshots found.")
     snapshots.sort(key=lambda x: x["SnapshotCreateTime"], reverse=True)
     latest = snapshots[0]
-    logger.info(f"Using Snapshot: {latest['DBSnapshotIdentifier']}")
+    logger.info(f"Using Snapshot: {latest['DBSnapshotIdentifier']} with KMS key {latest.get('KmsKeyId')}")
     return latest
 
 

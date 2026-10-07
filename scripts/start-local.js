@@ -38,8 +38,8 @@ function run(command, args, env = {}) {
   console.log(`Using backend port ${backendPort} and frontend port ${frontendPort}`);
 
   const backend = run('npm', ['--prefix', 'backend', devMode ? 'run' : 'run', devMode ? 'dev' : 'start'], {
-    DB_HOST: 'localhost',
-    DB_PORT: '3306',
+    DB_HOST: '127.0.0.1',
+    DB_PORT: '3307',
     DB_USER: 'root',
     DB_PASSWORD: 'rootpassword',
     DB_NAME: 'drapp',

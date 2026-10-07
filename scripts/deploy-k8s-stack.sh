@@ -216,11 +216,27 @@ if ! kubectl get deployment -n kube-system aws-load-balancer-controller >/dev/nu
 fi
 
 kubectl apply -f "${KUBERNETES_DIR}/ingress/ingressclass.yaml"
+
+if kubectl get ingress -n dr-automator dr-automator-ingress >/dev/null 2>&1; then
+  echo "[INFO] Recreating stale ingress resource to refresh the ALB target state"
+  kubectl delete ingress dr-automator-ingress -n dr-automator --ignore-not-found=true >/dev/null
+fi
+
 kubectl apply -f "${KUBERNETES_DIR}/ingress/ingress.yaml"
 
 kubectl rollout status deployment/backend -n dr-automator --timeout=180s
 kubectl rollout status deployment/frontend -n dr-automator --timeout=180s
 kubectl rollout status deployment/aws-load-balancer-controller -n kube-system --timeout=180s
+kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].hostname}' ingress/dr-automator-ingress -n dr-automator --timeout=300s
+
+ALB_HOST=$(kubectl get ingress dr-automator-ingress -n dr-automator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
+if [ -n "${ALB_HOST}" ]; then
+  echo "[INFO] Verifying ALB health endpoint: http://${ALB_HOST}"
+  curl -fsS --max-time 30 "http://${ALB_HOST}" >/dev/null
+  echo "[PASS] Public ALB endpoint is responding successfully: http://${ALB_HOST}"
+else
+  echo "[WARN] Ingress hostname not assigned yet; retry after the AWS ALB controller finishes reconciliation."
+fi
 
 echo
 kubectl get ingress -n dr-automator -o wide
