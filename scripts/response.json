@@ -1,1 +1,1 @@
-{"statusCode": 500, "body": "{\"message\": \"No DR snapshots found.\", \"timestamp\": \"2026-10-06T11:03:07.379559\"}"}
+{"statusCode": 500, "body": "{\"message\": \"The specified KMS key [arn:aws:kms:ap-southeast-1:926658607256:key/3b84ac46-b355-43ce-8f84-8823488cd566] does not exist, is not enabled or you do not have permissions to access it.\", \"timestamp\": \"2026-10-07T06:16:08.114985\"}"}

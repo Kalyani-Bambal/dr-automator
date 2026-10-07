@@ -23,6 +23,7 @@ class Config:
     DB_INSTANCE_CLASS = os.getenv("DB_INSTANCE_CLASS")
     DB_SUBNET_GROUP = os.getenv("DB_SUBNET_GROUP")
     SECURITY_GROUP_ID = os.getenv("SECURITY_GROUP_ID")
+    KMS_KEY_ID = os.getenv("KMS_KEY_ID")
 
     DB_PARAMETER_GROUP = os.getenv("DB_PARAMETER_GROUP")
 
@@ -41,6 +42,7 @@ class Config:
         "DB_INSTANCE_CLASS": DB_INSTANCE_CLASS,
         "DB_SUBNET_GROUP": DB_SUBNET_GROUP,
         "SECURITY_GROUP_ID": SECURITY_GROUP_ID,
+        "KMS_KEY_ID": KMS_KEY_ID,
     }
 
     @classmethod
