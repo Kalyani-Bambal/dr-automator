@@ -19,6 +19,28 @@ ensure_ecr_repo() {
   fi
 }
 
+wait_for_alb_dns() {
+  local host="$1"
+  local timeout_seconds="${2:-180}"
+  local poll_interval="${3:-10}"
+  local deadline=$((SECONDS + timeout_seconds))
+
+  while (( SECONDS < deadline )); do
+    if getent hosts "${host}" >/dev/null 2>&1; then
+      return 0
+    fi
+
+    if command -v nslookup >/dev/null 2>&1 && nslookup "${host}" >/dev/null 2>&1; then
+      return 0
+    fi
+
+    echo "[INFO] Waiting for ALB DNS propagation for ${host} (${SECONDS}/${timeout_seconds}s)"
+    sleep "${poll_interval}"
+  done
+
+  return 1
+}
+
 build_and_push_image() {
   local repo_name="$1"
   local tag="$2"
@@ -232,8 +254,18 @@ kubectl wait --for=jsonpath='{.status.loadBalancer.ingress[0].hostname}' ingress
 ALB_HOST=$(kubectl get ingress dr-automator-ingress -n dr-automator -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || true)
 if [ -n "${ALB_HOST}" ]; then
   echo "[INFO] Verifying ALB health endpoint: http://${ALB_HOST}"
-  curl -fsS --max-time 30 "http://${ALB_HOST}" >/dev/null
-  echo "[PASS] Public ALB endpoint is responding successfully: http://${ALB_HOST}"
+
+  if wait_for_alb_dns "${ALB_HOST}" 180 10; then
+    if curl -fsS --connect-timeout 5 --max-time 30 "http://${ALB_HOST}/" >/dev/null; then
+      echo "[PASS] Public ALB endpoint is responding successfully: http://${ALB_HOST}"
+    else
+      echo "[WARN] ALB DNS is resolving, but the endpoint is still warming up or returning a non-2xx response. Check the ALB target groups and application health."
+      kubectl describe ingress dr-automator-ingress -n dr-automator || true
+    fi
+  else
+    echo "[WARN] The ALB hostname is assigned but DNS propagation is not complete from this environment yet. The Ingress is created and AWS is still reconciling the load balancer."
+    kubectl describe ingress dr-automator-ingress -n dr-automator || true
+  fi
 else
   echo "[WARN] Ingress hostname not assigned yet; retry after the AWS ALB controller finishes reconciliation."
 fi
