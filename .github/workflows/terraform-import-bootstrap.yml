@@ -1,6 +1,7 @@
-name: Terraform Import Bootstrap
+---
+name: "Terraform Import Bootstrap"
 
-on:
+"on":
   workflow_dispatch:
 
 permissions:
