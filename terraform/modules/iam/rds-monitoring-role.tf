@@ -7,7 +7,7 @@ data "aws_iam_policy_document" "rds_monitoring_assume_role" {
     effect = "Allow"
 
     principals {
-      type = "Service"
+      type        = "Service"
       identifiers = ["monitoring.rds.amazonaws.com"]
     }
 
@@ -23,7 +23,7 @@ resource "aws_iam_role" "rds_monitoring" {
   tags = merge(
     local.common_tags,
     {
-      Name = "${local.name_prefix}-rds-monitoring-role"
+      Name     = "${local.name_prefix}-rds-monitoring-role"
       Resource = "RDS Enhanced Monitoring Role"
     }
   )

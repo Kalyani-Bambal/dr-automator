@@ -86,7 +86,7 @@ resource "aws_db_instance" "primary" {
 
   monitoring_interval = 0
 
-  performance_insights_enabled = false
+  performance_insights_enabled    = false
   performance_insights_kms_key_id = null
 
   enabled_cloudwatch_logs_exports = local.log_exports
