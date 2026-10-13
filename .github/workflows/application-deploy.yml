@@ -1,0 +1,120 @@
+
+name: Build and Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "frontend/**"
+      - "backend/**"
+      - "kubernetes/**"
+      - ".github/workflows/application-deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+  EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
+  K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
+
+jobs:
+  build-and-deploy:
+    name: Build, Push and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Verify AWS identity
+        run: aws sts get-caller-identity
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t "$REGISTRY/backend:$IMAGE_TAG" \
+            ./backend
+
+          docker push "$REGISTRY/backend:$IMAGE_TAG"
+
+      - name: Build and push frontend image
+        env:
+          REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build \
+            -t "$REGISTRY/frontend:$IMAGE_TAG" \
+            ./frontend
+
+          docker push "$REGISTRY/frontend:$IMAGE_TAG"
+
+      - name: Configure kubectl
+        run: |
+          aws eks update-kubeconfig \
+            --name "$EKS_CLUSTER_NAME" \
+            --region "$AWS_REGION"
+
+      - name: Verify Kubernetes access
+        run: |
+          kubectl get nodes
+          kubectl get namespace "$K8S_NAMESPACE"
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f kubernetes/namespace.yaml
+          kubectl apply -f kubernetes/backend/service.yaml
+          kubectl apply -f kubernetes/frontend/service.yaml
+          kubectl apply -f kubernetes/backend/deployment.yaml
+          kubectl apply -f kubernetes/frontend/deployment.yaml
+
+      - name: Update application images
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          REGISTRY="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+
+          kubectl set image \
+            deployment/backend \
+            backend="$REGISTRY/backend:$IMAGE_TAG" \
+            -n "$K8S_NAMESPACE"
+
+          kubectl set image \
+            deployment/frontend \
+            frontend="$REGISTRY/frontend:$IMAGE_TAG" \
+            -n "$K8S_NAMESPACE"
+
+      - name: Wait for backend rollout
+        run: |
+          kubectl rollout status deployment/backend \
+            -n "$K8S_NAMESPACE" \
+            --timeout=300s
+
+      - name: Wait for frontend rollout
+        run: |
+          kubectl rollout status deployment/frontend \
+            -n "$K8S_NAMESPACE" \
+            --timeout=300s
+
+      - name: Verify deployed resources
+        run: |
+          kubectl get deployments -n "$K8S_NAMESPACE"
+          kubectl get pods -n "$K8S_NAMESPACE"
+          kubectl get services -n "$K8S_NAMESPACE"
