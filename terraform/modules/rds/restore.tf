@@ -91,8 +91,8 @@ resource "aws_db_instance" "dr_restore" {
   tags = merge(
     local.common_tags,
     {
-      Name = local.restore_identifier
-      Type = "Disaster-Recovery"
+      Name   = local.restore_identifier
+      Type   = "Disaster-Recovery"
       Region = var.dr_region
     }
   )

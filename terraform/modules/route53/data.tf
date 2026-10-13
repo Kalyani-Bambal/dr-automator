@@ -32,7 +32,7 @@ data "aws_route53_zone" "existing" {
 
   count = var.create_hosted_zone || var.hosted_zone_name == "" ? 0 : 1
 
-  name         = var.hosted_zone_name
+  name = var.hosted_zone_name
 
   private_zone = false
 

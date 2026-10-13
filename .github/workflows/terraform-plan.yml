@@ -4,15 +4,27 @@ name: Terraform Plan
 on:
   push:
     branches:
+      - "**"
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-plan.yml"
+      - ".github/workflows/terraform-apply.yml"
+  pull_request:
+    branches:
       - main
     paths:
       - "terraform/**"
       - ".github/workflows/terraform-plan.yml"
+      - ".github/workflows/terraform-apply.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
   id-token: write
+
+concurrency:
+  group: terraform-plan-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   terraform-plan:
@@ -35,6 +47,8 @@ jobs:
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
 
       - name: Verify AWS identity
         run: aws sts get-caller-identity
@@ -58,6 +72,7 @@ jobs:
       - name: Save plan artifact
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-plan
+          name: terraform-plan-${{ github.run_id }}
           path: terraform/environments/dev/tfplan
+          if-no-files-found: error
           retention-days: 3
