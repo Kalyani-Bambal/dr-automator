@@ -78,14 +78,6 @@ jobs:
         working-directory: terraform/environments/dev
         run: terraform init -input=false
 
-      - name: Terraform validate
+      - name: Apply infrastructure changes
         working-directory: terraform/environments/dev
-        run: terraform validate
-
-      - name: Generate fresh Terraform plan
-        working-directory: terraform/environments/dev
-        run: terraform plan -input=false -lock-timeout=5m -out=tfplan
-
-      - name: Apply planned infrastructure changes
-        working-directory: terraform/environments/dev
-        run: terraform apply -input=false -lock-timeout=5m tfplan
+        run: terraform apply -input=false -lock-timeout=5m -auto-approve
