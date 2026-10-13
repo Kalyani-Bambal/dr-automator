@@ -78,51 +78,6 @@ jobs:
         working-directory: terraform/environments/dev
         run: terraform init -input=false
 
-      - name: Import existing AWS resources into Terraform state
-        working-directory: terraform/environments/dev
-        run: |
-          set -euo pipefail
-
-          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-
-          import_if_missing() {
-            local resource="$1"
-            local id="$2"
-
-            if terraform state list 2>/dev/null | grep -Fxq "$resource"; then
-              echo "[INFO] Already in state: $resource"
-              return 0
-            fi
-
-            echo "[INFO] Importing $resource -> $id"
-            if terraform import "$resource" "$id"; then
-              echo "[INFO] Imported $resource"
-            else
-              echo "[WARN] Import failed for $resource; continuing because it may not exist or may already be managed elsewhere."
-            fi
-          }
-
-          import_if_missing 'module.eks.aws_cloudwatch_log_group.eks' '/aws/eks/dr-automator-dev-eks/cluster'
-          import_if_missing 'module.eks_dr.aws_cloudwatch_log_group.eks' '/aws/eks/dr-automator-dev-dr-eks/cluster'
-
-          import_if_missing 'module.iam.aws_iam_policy.cloudwatch_access' "arn:aws:iam::${ACCOUNT_ID}:policy/dr-automator-dev-cloudwatch-access"
-          import_if_missing 'module.iam.aws_iam_policy.ecr_access' "arn:aws:iam::${ACCOUNT_ID}:policy/dr-automator-dev-ecr-access"
-          import_if_missing 'module.iam.aws_iam_policy.s3_replication' "arn:aws:iam::${ACCOUNT_ID}:policy/dr-automator-dev-s3-replication-policy"
-
-          import_if_missing 'module.iam.aws_iam_role.eks_cluster' 'dr-automator-dev-eks-cluster-role'
-          import_if_missing 'module.iam.aws_iam_role.node_group' 'dr-automator-dev-node-group-role'
-          import_if_missing 'module.iam.aws_iam_role.rds_monitoring' 'dr-automator-dev-rds-monitoring-role'
-          import_if_missing 'module.iam.aws_iam_role.s3_replication' 'dr-automator-dev-s3-replication-role'
-
-          import_if_missing 'module.iam_dr.aws_iam_policy.cloudwatch_access' "arn:aws:iam::${ACCOUNT_ID}:policy/dr-automator-dev-dr-cloudwatch-access"
-          import_if_missing 'module.iam_dr.aws_iam_policy.ecr_access' "arn:aws:iam::${ACCOUNT_ID}:policy/dr-automator-dev-dr-ecr-access"
-          import_if_missing 'module.iam_dr.aws_iam_policy.s3_replication' "arn:aws:iam::${ACCOUNT_ID}:policy/dr-automator-dev-dr-s3-replication-policy"
-
-          import_if_missing 'module.iam_dr.aws_iam_role.eks_cluster' 'dr-automator-dev-dr-eks-cluster-role'
-          import_if_missing 'module.iam_dr.aws_iam_role.node_group' 'dr-automator-dev-dr-node-group-role'
-          import_if_missing 'module.iam_dr.aws_iam_role.rds_monitoring' 'dr-automator-dev-dr-rds-monitoring-role'
-          import_if_missing 'module.iam_dr.aws_iam_role.s3_replication' 'dr-automator-dev-dr-s3-replication-role'
-
       - name: Terraform validate
         working-directory: terraform/environments/dev
         run: terraform validate
