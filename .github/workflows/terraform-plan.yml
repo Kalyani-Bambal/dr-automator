@@ -50,6 +50,9 @@ jobs:
         with:
           terraform_version: 1.9.8
 
+      - name: Prepare Terraform remote state backend
+        run: bash scripts/prepare-tf-backend.sh
+
       - name: Verify AWS identity
         run: aws sts get-caller-identity
 
