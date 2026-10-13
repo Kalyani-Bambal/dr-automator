@@ -12,8 +12,6 @@ jobs:
   import-existing-resources:
     name: Import existing AWS resources into remote state
     runs-on: ubuntu-latest
-    environment:
-      name: production
 
     steps:
       - name: Checkout repository
