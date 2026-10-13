@@ -2,14 +2,9 @@
 name: Build and Deploy Application
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - "frontend/**"
-      - "backend/**"
-      - "kubernetes/**"
-      - ".github/workflows/application-deploy.yml"
+  workflow_run:
+    workflows: ["Terraform Apply"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +19,7 @@ env:
 
 jobs:
   build-and-deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     name: Build, Push and Deploy
     runs-on: ubuntu-latest
 
