@@ -2,9 +2,7 @@
 name: Build and Deploy Application
 
 on:
-  workflow_run:
-    workflows: ["Terraform Apply"]
-    types: [completed]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
@@ -19,7 +17,6 @@ env:
 
 jobs:
   build-and-deploy:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     name: Build, Push and Deploy
     runs-on: ubuntu-latest
 

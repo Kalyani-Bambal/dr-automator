@@ -9,6 +9,7 @@ on:
       - "terraform/**"
       - ".github/workflows/terraform-plan.yml"
       - ".github/workflows/terraform-apply.yml"
+      - ".github/workflows/application-deploy.yml"
   workflow_dispatch:
 
 permissions:
@@ -16,17 +17,21 @@ permissions:
   id-token: write
 
 concurrency:
-  group: terraform-apply-main
+  group: terraform-apply-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   terraform-apply:
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
     name: Apply dev infrastructure
     runs-on: ubuntu-latest
     environment:
       name: production
       url: https://github.com/${{ github.repository }}
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout repository
@@ -43,42 +48,16 @@ jobs:
         with:
           terraform_version: 1.9.8
 
-      - name: Ensure Terraform remote state backend exists
-        env:
-          TF_STATE_BUCKET: dr-automator-terraform-state-ap-south-1
-          TF_STATE_REGION: ap-south-1
-          TF_LOCK_TABLE: dr-automator-terraform-state-lock
-        run: |
-          set -euo pipefail
-
-          aws s3api head-bucket --bucket "$TF_STATE_BUCKET" --region "$TF_STATE_REGION" >/dev/null 2>&1 || \
-          aws s3api create-bucket \
-            --bucket "$TF_STATE_BUCKET" \
-            --region "$TF_STATE_REGION" \
-            --create-bucket-configuration "LocationConstraint=$TF_STATE_REGION"
-
-          aws s3api put-bucket-versioning \
-            --bucket "$TF_STATE_BUCKET" \
-            --versioning-configuration Status=Enabled \
-            --region "$TF_STATE_REGION"
-
-          aws s3api put-bucket-encryption \
-            --bucket "$TF_STATE_BUCKET" \
-            --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}' \
-            --region "$TF_STATE_REGION"
-
-          aws dynamodb describe-table --table-name "$TF_LOCK_TABLE" --region "$TF_STATE_REGION" >/dev/null 2>&1 || \
-          aws dynamodb create-table \
-            --table-name "$TF_LOCK_TABLE" \
-            --attribute-definitions AttributeName=LockID,AttributeType=S \
-            --key-schema AttributeName=LockID,KeyType=HASH \
-            --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-            --region "$TF_STATE_REGION"
-
       - name: Terraform initialize
         working-directory: terraform/environments/dev
-        run: terraform init -input=false
+        run: terraform init -input=false -reconfigure
 
       - name: Apply infrastructure changes
         working-directory: terraform/environments/dev
-        run: terraform apply -input=false -lock-timeout=5m -auto-approve
+        run: terraform apply -input=false -lock-timeout=5m -auto-approve -no-color
+
+  deploy:
+    name: Deploy application
+    needs: terraform-apply
+    uses: ./.github/workflows/application-deploy.yml
+    secrets: inherit
