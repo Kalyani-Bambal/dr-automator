@@ -50,11 +50,11 @@ jobs:
 
       - name: Terraform initialize
         working-directory: terraform/environments/dev
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
 
-      - name: Apply infrastructure changes
+      - name: Terraform apply
         working-directory: terraform/environments/dev
-        run: terraform apply -input=false -lock-timeout=5m -auto-approve -no-color
+        run: terraform apply -auto-approve -input=false -lock-timeout=5m
 
   deploy:
     name: Deploy application

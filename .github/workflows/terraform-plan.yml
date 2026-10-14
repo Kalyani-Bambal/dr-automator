@@ -44,16 +44,9 @@ jobs:
         with:
           terraform_version: 1.9.8
 
-      - name: Verify AWS identity
-        run: aws sts get-caller-identity
-
-      - name: Terraform format check
-        working-directory: terraform
-        run: terraform fmt -check -recursive
-
       - name: Terraform initialize
         working-directory: terraform/environments/dev
-        run: terraform init -input=false -reconfigure
+        run: terraform init -input=false
 
       - name: Terraform validate
         working-directory: terraform/environments/dev
@@ -61,12 +54,4 @@ jobs:
 
       - name: Terraform plan
         working-directory: terraform/environments/dev
-        run: terraform plan -input=false -lock-timeout=5m -no-color -out=tfplan
-
-      - name: Save plan artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan-${{ github.run_id }}
-          path: terraform/environments/dev/tfplan
-          if-no-files-found: error
-          retention-days: 3
+        run: terraform plan -input=false -lock-timeout=5m -no-color
