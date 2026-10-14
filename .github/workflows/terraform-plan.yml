@@ -1,4 +1,3 @@
-
 name: Terraform Plan
 
 on:
@@ -55,3 +54,4 @@ jobs:
       - name: Terraform plan
         working-directory: terraform/environments/dev
         run: terraform plan -input=false -lock-timeout=5m -no-color
+        
