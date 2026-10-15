@@ -197,8 +197,14 @@ variable "deletion_protection" {
 #############################################################
 
 variable "kms_key_arn" {
-  description = "KMS Key ARN"
+  description = "Primary KMS Key ARN"
   type        = string
+}
+
+variable "dr_kms_key_arn" {
+  description = "DR Region KMS Key ARN"
+  type        = string
+  default     = ""
 }
 
 #############################################################
