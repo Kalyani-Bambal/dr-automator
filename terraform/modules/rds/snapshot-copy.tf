@@ -31,23 +31,33 @@ resource "aws_db_snapshot" "manual" {
 }
 
 #############################################################
-# Latest Snapshot
+# Copy the primary snapshot into the DR region
 #############################################################
 
-data "aws_db_snapshot" "latest" {
-  count = var.create_manual_snapshot ? 0 : 0
+resource "aws_db_snapshot_copy" "dr" {
+  count = var.enable_dr_restore && var.create_manual_snapshot ? 1 : 0
 
-  provider = aws.primary
+  provider = aws.dr
 
-  db_instance_identifier = aws_db_instance.primary.identifier
-
-  most_recent = true
+  source_db_snapshot_identifier = aws_db_snapshot.manual[0].db_snapshot_arn
+  target_db_snapshot_identifier = "${local.snapshot_identifier}-dr"
+  copy_tags                    = true
+  kms_key_id                   = var.dr_kms_key_arn
 
   depends_on = [
-    aws_db_instance.primary
+    aws_db_snapshot.manual
   ]
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name   = "${local.snapshot_identifier}-dr"
+      Type   = "Disaster-Recovery-Snapshot"
+      Region = var.dr_region
+    }
+  )
 }
 
 locals {
-  latest_snapshot_arn = try(data.aws_db_snapshot.latest[0].db_snapshot_arn, null)
+  dr_snapshot_arn = try(aws_db_snapshot_copy.dr[0].db_snapshot_arn, null)
 }

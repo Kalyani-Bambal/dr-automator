@@ -242,13 +242,21 @@ module "rds" {
   # Encryption
   ###########################################################
 
-  kms_key_arn = module.kms.kms_key_arn
+  kms_key_arn    = module.kms.kms_key_arn
+  dr_kms_key_arn = module.kms_dr.kms_key_arn
 
   ###########################################################
   # Protection
   ###########################################################
 
   deletion_protection = false
+
+  ###########################################################
+  # Disaster Recovery
+  ###########################################################
+
+  enable_dr_restore = true
+  create_manual_snapshot = true
 
   ###########################################################
   # Tags

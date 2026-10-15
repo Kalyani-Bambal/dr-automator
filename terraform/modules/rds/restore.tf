@@ -1,23 +1,5 @@
 #############################################################
-# Latest Copied Snapshot (Singapore)
-#############################################################
-
-data "aws_db_snapshot" "dr_latest" {
-  count = var.enable_dr_restore ? 1 : 0
-
-  provider = aws.dr
-
-  most_recent = true
-
-  db_instance_identifier = local.restore_source_identifier
-}
-
-locals {
-  dr_snapshot_arn = try(data.aws_db_snapshot.dr_latest[0].db_snapshot_arn, null)
-}
-
-#############################################################
-# Restore RDS MySQL in DR Region
+# Restore RDS MySQL in DR Region from copied snapshot
 #############################################################
 
 resource "aws_db_instance" "dr_restore" {
@@ -28,7 +10,7 @@ resource "aws_db_instance" "dr_restore" {
   # Create only when DR restore is enabled
   ###########################################################
 
-  count = var.enable_dr_restore && local.dr_snapshot_arn != null ? 1 : 0
+  count = var.enable_dr_restore ? 1 : 0
 
   ###########################################################
   # Restore
@@ -62,7 +44,7 @@ resource "aws_db_instance" "dr_restore" {
 
   storage_encrypted = true
 
-  kms_key_id = var.kms_key_arn
+  kms_key_id = var.dr_kms_key_arn
 
   ###########################################################
   # Monitoring
@@ -72,7 +54,7 @@ resource "aws_db_instance" "dr_restore" {
 
   performance_insights_enabled = var.performance_insights_enabled
 
-  performance_insights_kms_key_id = var.kms_key_arn
+  performance_insights_kms_key_id = var.dr_kms_key_arn
 
   enabled_cloudwatch_logs_exports = local.log_exports
 
@@ -102,6 +84,7 @@ resource "aws_db_instance" "dr_restore" {
   ###########################################################
 
   depends_on = [
+    aws_db_snapshot_copy.dr,
     aws_db_subnet_group.dr
   ]
 }
