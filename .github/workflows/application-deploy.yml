@@ -122,8 +122,6 @@ jobs:
             --region "$AWS_REGION" \
             --name "$EKS_CLUSTER_NAME"
 
-          kubectl config current-context
-
           aws eks get-token \
             --region "$AWS_REGION" \
             --cluster-name "$EKS_CLUSTER_NAME" \
@@ -136,17 +134,9 @@ jobs:
           set -euo pipefail
 
           kubectl get nodes
-
-          if [[ "$(kubectl auth can-i get nodes)" != "yes" ]]; then
-            echo "Error: GitHub Actions role cannot get nodes."
-            exit 1
-          fi
-
-          if [[ "$(kubectl auth can-i create deployments \
-            --namespace="$K8S_NAMESPACE")" != "yes" ]]; then
-            echo "Error: GitHub Actions role cannot create deployments."
-            exit 1
-          fi
+          kubectl auth can-i get nodes
+          kubectl auth can-i create deployments \
+            --namespace="$K8S_NAMESPACE"
 
       # 11. Create namespace
       - name: Apply Kubernetes namespace
