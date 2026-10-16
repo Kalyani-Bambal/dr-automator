@@ -14,7 +14,6 @@ env:
   AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
   EKS_CLUSTER_NAME: ${{ vars.EKS_CLUSTER_NAME }}
   K8S_NAMESPACE: ${{ vars.K8S_NAMESPACE }}
-  AWS_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}
 
 jobs:
   build-and-deploy:
@@ -36,22 +35,37 @@ jobs:
           : "${AWS_ACCOUNT_ID:?Missing AWS_ACCOUNT_ID repository variable}"
           : "${EKS_CLUSTER_NAME:?Missing EKS_CLUSTER_NAME repository variable}"
           : "${K8S_NAMESPACE:?Missing K8S_NAMESPACE repository variable}"
-          : "${AWS_ROLE_ARN:?Missing AWS_ROLE_ARN repository variable}"
 
-          if [[ "$K8S_NAMESPACE" != "dr-automator" ]]; then
-            echo "Error: kubernetes manifests currently use namespace dr-automator."
+          if [[ "$AWS_REGION" != "ap-south-1" ]]; then
+            echo "Error: Expected AWS_REGION=ap-south-1."
             exit 1
           fi
 
-      # 3. Authenticate to AWS using GitHub OIDC
+          if [[ "$AWS_ACCOUNT_ID" != "926658607256" ]]; then
+            echo "Error: AWS account ID does not match expected account."
+            exit 1
+          fi
+
+          if [[ "$K8S_NAMESPACE" != "dr-automator" ]]; then
+            echo "Error: Expected namespace dr-automator."
+            exit 1
+          fi
+
+      # 3. TEMPORARY: Debug the GitHub OIDC claims.
+      # Remove this step after checking the sub and aud claims.
+      - name: Debug GitHub OIDC claims
+        uses: github/actions-oidc-debugger@main
+
+      # 4. Authenticate to AWS using GitHub OIDC
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ env.AWS_ROLE_ARN }}
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::926658607256:role/dr-automator-github-actions
+          aws-region: ap-south-1
+          audience: sts.amazonaws.com
           role-session-name: GitHubActionsDeploy
 
-      # 4. Verify AWS identity and account
+      # 5. Verify AWS identity and account
       - name: Verify AWS identity
         shell: bash
         run: |
@@ -68,7 +82,7 @@ jobs:
             exit 1
           fi
 
-      # 5. Verify EKS cluster
+      # 6. Verify EKS cluster
       - name: Verify EKS cluster
         shell: bash
         run: |
@@ -87,12 +101,12 @@ jobs:
             exit 1
           fi
 
-      # 6. Login to Amazon ECR
+      # 7. Login to Amazon ECR
       - name: Login to Amazon ECR
         id: ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      # 7. Build and push backend image
+      # 8. Build and push backend image
       - name: Build and push backend image
         env:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
@@ -107,7 +121,7 @@ jobs:
 
           docker push "$REGISTRY/backend:$IMAGE_TAG"
 
-      # 8. Build and push frontend image
+      # 9. Build and push frontend image
       - name: Build and push frontend image
         env:
           REGISTRY: ${{ steps.ecr-login.outputs.registry }}
@@ -122,7 +136,7 @@ jobs:
 
           docker push "$REGISTRY/frontend:$IMAGE_TAG"
 
-      # 9. Configure kubectl for EKS
+      # 10. Configure kubectl for EKS
       - name: Configure kubectl for EKS
         shell: bash
         run: |
@@ -137,7 +151,7 @@ jobs:
             --cluster-name "$EKS_CLUSTER_NAME" \
             > /dev/null
 
-      # 10. Verify existing namespace
+      # 11. Verify existing namespace (do not create it)
       - name: Verify Kubernetes namespace
         shell: bash
         run: |
@@ -150,7 +164,7 @@ jobs:
             "namespace/$K8S_NAMESPACE" \
             --timeout=120s
 
-      # 11. Verify namespace-level Kubernetes permissions
+      # 12. Verify namespace-level permissions
       - name: Verify Kubernetes deployment access
         shell: bash
         run: |
@@ -172,7 +186,7 @@ jobs:
 
           echo "Required namespace permissions verified."
 
-      # 12. Apply Kubernetes ConfigMap
+      # 13. Apply ConfigMap
       - name: Apply Kubernetes ConfigMap
         shell: bash
         run: |
@@ -183,7 +197,7 @@ jobs:
           kubectl get configmap dr-automator-config \
             --namespace="$K8S_NAMESPACE"
 
-      # 13. Create or update Kubernetes Secret securely
+      # 14. Create or update Secret from GitHub Actions secrets
       - name: Apply Kubernetes Secret
         env:
           DB_USER: ${{ secrets.DB_USER }}
@@ -202,9 +216,9 @@ jobs:
             --dry-run=client \
             -o yaml | kubectl apply -f -
 
-          echo "Kubernetes Secret applied successfully."
+          echo "Kubernetes Secret applied."
 
-      # 14. Apply Kubernetes Services
+      # 15. Apply Kubernetes Services
       - name: Apply Kubernetes services
         shell: bash
         run: |
@@ -218,7 +232,7 @@ jobs:
             -f kubernetes/frontend/service.yaml \
             -n "$K8S_NAMESPACE"
 
-      # 15. Apply Kubernetes Deployments
+      # 16. Apply Kubernetes Deployments
       - name: Apply Kubernetes deployments
         shell: bash
         run: |
@@ -232,7 +246,7 @@ jobs:
             -f kubernetes/frontend/deployment.yaml \
             -n "$K8S_NAMESPACE"
 
-      # 16. Update application images
+      # 17. Update application images
       - name: Update application images
         env:
           IMAGE_TAG: ${{ github.sha }}
@@ -250,7 +264,7 @@ jobs:
             frontend="$REGISTRY/frontend:$IMAGE_TAG" \
             -n "$K8S_NAMESPACE"
 
-      # 17. Wait for backend rollout
+      # 18. Wait for backend rollout
       - name: Wait for backend rollout
         shell: bash
         run: |
@@ -260,7 +274,7 @@ jobs:
             -n "$K8S_NAMESPACE" \
             --timeout=300s
 
-      # 18. Wait for frontend rollout
+      # 19. Wait for frontend rollout
       - name: Wait for frontend rollout
         shell: bash
         run: |
@@ -270,19 +284,20 @@ jobs:
             -n "$K8S_NAMESPACE" \
             --timeout=300s
 
-      # 19. Verify deployed resources
+      # 20. Verify deployed resources
       - name: Verify deployed resources
         shell: bash
         run: |
           set -euo pipefail
 
           kubectl get configmaps -n "$K8S_NAMESPACE"
-          kubectl get secrets -n "$K8S_NAMESPACE"
           kubectl get deployments -n "$K8S_NAMESPACE"
           kubectl get pods -n "$K8S_NAMESPACE"
           kubectl get services -n "$K8S_NAMESPACE"
 
-      # 20. Print deployment summary
+          echo "Deployment verification completed."
+
+      # 21. Print deployment summary
       - name: Deployment summary
         if: success()
         env:
