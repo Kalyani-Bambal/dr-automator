@@ -2,12 +2,23 @@
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Sid": "LambdaTrustPolicy",
+      "Sid": "GitHubOIDCTrust",
       "Effect": "Allow",
       "Principal": {
-        "Service": "lambda.amazonaws.com"
+        "Federated": "arn:aws:iam::926658607256:oidc-provider/token.actions.githubusercontent.com"
       },
-      "Action": "sts:AssumeRole"
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
+        },
+        "StringLike": {
+          "token.actions.githubusercontent.com:sub": [
+            "repo:Kalyani-Bambal/dr-automator:ref:refs/heads/main",
+            "repo:Kalyani-Bambal/dr-automator:pull_request"
+          ]
+        }
+      }
     }
   ]
 }
