@@ -8,4 +8,32 @@ data:
     - rolearn: arn:aws:iam::926658607256:role/dr-automator-github-actions
       username: github-actions
       groups:
-        - system:masters
+        - github-actions
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dr-automator-deployer
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "configmaps", "secrets", "services", "pods", "pods/log", "events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: github-actions-dr-automator-deployer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dr-automator-deployer
+subjects:
+  - kind: Group
+    name: github-actions
+    apiGroup: rbac.authorization.k8s.io
